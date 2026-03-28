@@ -1,0 +1,9 @@
+{
+  "name": "opencode-zed-ai",
+  "version": "1.0.0",
+  "main": "./index.mjs",
+  "type": "module",
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.2.25"
+  }
+}

@@ -1,0 +1,532 @@
+{
+  "thread_id": "ad1122e7-0a37-45f7-acd6-dc924a309fde",
+  "prompt_id": "ef0779c7-d395-4444-b2bc-d40a9e1b1d48",
+  "intent": "user_prompt",
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "provider_request": {
+    "model": "claude-sonnet-4-6",
+    "max_tokens": 64000,
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "what model are you"
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "I'm Claude Sonnet 4.6, made by Anthropic."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "hello"
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Hello! How can I help you today? Do you have a coding project you'd like to work on?"
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "hi"
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "Hi there! 👋 Is there something I can help you with? Feel free to ask about any coding questions or projects you have in mind!"
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "hi",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ]
+      }
+    ],
+    "tools": [
+      {
+        "name": "copy_path",
+        "description": "Copies a file or directory in the project, and returns confirmation that the copy succeeded.\nDirectory contents will be copied recursively.\n\nThis tool should be used when it's desirable to create a copy of a file or directory without modifying the original.\nIt's much more efficient than doing this by separately reading and then writing the file or directory's contents, so this tool should be preferred over that approach whenever copying is the goal.",
+        "input_schema": {
+          "required": [
+            "source_path",
+            "destination_path"
+          ],
+          "properties": {
+            "source_path": {
+              "description": "The source path of the file or directory to copy.\nIf a directory is specified, its contents will be copied recursively.\n\n<example>\nIf the project has the following files:\n\n- directory1/a/something.txt\n- directory2/a/things.txt\n- directory3/a/other.txt\n\nYou can copy the first file by providing a source_path of \"directory1/a/something.txt\"\n</example>",
+              "type": "string"
+            },
+            "destination_path": {
+              "description": "The destination path where the file or directory should be copied to.\n\n<example>\nTo copy \"directory1/a/something.txt\" to \"directory2/b/copy.txt\", provide a destination_path of \"directory2/b/copy.txt\"\n</example>",
+              "type": "string"
+            }
+          },
+          "description": "Copies a file or directory in the project, and returns confirmation that the copy succeeded.\nDirectory contents will be copied recursively.\n\nThis tool should be used when it's desirable to create a copy of a file or directory without modifying the original.\nIt's much more efficient than doing this by separately reading and then writing the file or directory's contents, so this tool should be preferred over that approach whenever copying is the goal.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "create_directory",
+        "description": "Creates a new directory at the specified path within the project. Returns confirmation that the directory was created.\n\nThis tool creates a directory and all necessary parent directories. It should be used whenever you need to create new directories within the project.",
+        "input_schema": {
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "description": "The path of the new directory.\n\n<example>\nIf the project has the following structure:\n\n- directory1/\n- directory2/\n\nYou can create a new directory by providing a path of \"directory1/new_directory\"\n</example>",
+              "type": "string"
+            }
+          },
+          "description": "Creates a new directory at the specified path within the project. Returns confirmation that the directory was created.\n\nThis tool creates a directory and all necessary parent directories. It should be used whenever you need to create new directories within the project.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "delete_path",
+        "description": "Deletes the file or directory (and the directory's contents, recursively) at the specified path in the project, and returns confirmation of the deletion.",
+        "input_schema": {
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "description": "The path of the file or directory to delete.\n\n<example>\nIf the project has the following files:\n\n- directory1/a/something.txt\n- directory2/a/things.txt\n- directory3/a/other.txt\n\nYou can delete the first file by providing a path of \"directory1/a/something.txt\"\n</example>",
+              "type": "string"
+            }
+          },
+          "description": "Deletes the file or directory (and the directory's contents, recursively) at the specified path in the project, and returns confirmation of the deletion.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "diagnostics",
+        "description": "Get errors and warnings for the project or a specific file.\n\nThis tool can be invoked after a series of edits to determine if further edits are necessary, or if the user asks to fix errors or warnings in their codebase.\n\nWhen a path is provided, shows all diagnostics for that specific file.\nWhen no path is provided, shows a summary of error and warning counts for all files in the project.\n\n<example>\nTo get diagnostics for a specific file:\n{\n    \"path\": \"src/main.rs\"\n}\n\nTo get a project-wide diagnostic summary:\n{}\n</example>\n\n<guidelines>\n- If you think you can fix a diagnostic, make 1-2 attempts and then give up.\n- Don't remove code you've generated just because you can't fix an error. The user can help you fix it.\n</guidelines>",
+        "input_schema": {
+          "properties": {
+            "path": {
+              "description": "The path to get diagnostics for. If not provided, returns a project-wide summary.\n\nThis path should never be absolute, and the first component\nof the path should always be a root directory in a project.\n\n<example>\nIf the project has the following root directories:\n\n- lorem\n- ipsum\n\nIf you wanna access diagnostics for `dolor.txt` in `ipsum`, you should use the path `ipsum/dolor.txt`.\n</example>",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "type": "object",
+          "description": "Get errors and warnings for the project or a specific file.\n\nThis tool can be invoked after a series of edits to determine if further edits are necessary, or if the user asks to fix errors or warnings in their codebase.\n\nWhen a path is provided, shows all diagnostics for that specific file.\nWhen no path is provided, shows a summary of error and warning counts for all files in the project.\n\n<example>\nTo get diagnostics for a specific file:\n{\n    \"path\": \"src/main.rs\"\n}\n\nTo get a project-wide diagnostic summary:\n{}\n</example>\n\n<guidelines>\n- If you think you can fix a diagnostic, make 1-2 attempts and then give up.\n- Don't remove code you've generated just because you can't fix an error. The user can help you fix it.\n</guidelines>",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "edit_file",
+        "description": "This is a tool for creating a new file or editing an existing file. For moving or renaming files, you should generally use the `move_path` tool instead.\n\nBefore using this tool:\n\n1. Use the `read_file` tool to understand the file's contents and context\n\n2. Verify the directory path is correct (only applicable when creating new files):\n   - Use the `list_directory` tool to verify the parent directory exists and is the correct location",
+        "input_schema": {
+          "required": [
+            "display_description",
+            "path",
+            "mode"
+          ],
+          "properties": {
+            "display_description": {
+              "description": "A one-line, user-friendly markdown description of the edit. This will be shown in the UI and also passed to another model to perform the edit.\n\nBe terse, but also descriptive in what you want to achieve with this edit. Avoid generic instructions.\n\nNEVER mention the file path in this description.\n\n<example>Fix API endpoint URLs</example>\n<example>Update copyright year in `page_footer`</example>\n\nMake sure to include this field before all the others in the input object so that we can display it immediately.",
+              "type": "string"
+            },
+            "path": {
+              "description": "The full path of the file to create or modify in the project.\n\nWARNING: When specifying which file path need changing, you MUST start each path with one of the project's root directories.\n\nThe following examples assume we have two root directories in the project:\n- /a/b/backend\n- /c/d/frontend\n\n<example>\n`backend/src/main.rs`\n\nNotice how the file path starts with `backend`. Without that, the path would be ambiguous and the call would fail!\n</example>\n\n<example>\n`frontend/db.js`\n</example>",
+              "type": "string"
+            },
+            "mode": {
+              "description": "The mode of operation on the file. Possible values:\n- 'edit': Make granular edits to an existing file.\n- 'create': Create a new file if it doesn't exist.\n- 'overwrite': Replace the entire contents of an existing file.\n\nWhen a file already exists or you just created it, prefer editing it as opposed to recreating it from scratch.",
+              "type": "string",
+              "enum": [
+                "edit",
+                "create",
+                "overwrite"
+              ]
+            }
+          },
+          "description": "This is a tool for creating a new file or editing an existing file. For moving or renaming files, you should generally use the `move_path` tool instead.\n\nBefore using this tool:\n\n1. Use the `read_file` tool to understand the file's contents and context\n\n2. Verify the directory path is correct (only applicable when creating new files):\n   - Use the `list_directory` tool to verify the parent directory exists and is the correct location",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "fetch",
+        "description": "Fetches a URL and returns the content as Markdown.",
+        "input_schema": {
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "description": "The URL to fetch.",
+              "type": "string"
+            }
+          },
+          "description": "Fetches a URL and returns the content as Markdown.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "find_path",
+        "description": "Fast file path pattern matching tool that works with any codebase size\n\n- Supports glob patterns like \"**/*.js\" or \"src/**/*.ts\"\n- Returns matching file paths sorted alphabetically\n- Prefer the `grep` tool to this tool when searching for symbols unless you have specific information about paths.\n- Use this tool when you need to find files by name patterns\n- Results are paginated with 50 matches per page. Use the optional 'offset' parameter to request subsequent pages.",
+        "input_schema": {
+          "required": [
+            "glob"
+          ],
+          "properties": {
+            "glob": {
+              "description": "The glob to match against every path in the project.\n\n<example>\nIf the project has the following root directories:\n\n- directory1/a/something.txt\n- directory2/a/things.txt\n- directory3/a/other.txt\n\nYou can get back the first two paths by providing a glob of \"*thing*.txt\"\n</example>",
+              "type": "string"
+            },
+            "offset": {
+              "description": "Optional starting position for paginated results (0-based).\nWhen not provided, starts from the beginning.",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          "description": "Fast file path pattern matching tool that works with any codebase size\n\n- Supports glob patterns like \"**/*.js\" or \"src/**/*.ts\"\n- Returns matching file paths sorted alphabetically\n- Prefer the `grep` tool to this tool when searching for symbols unless you have specific information about paths.\n- Use this tool when you need to find files by name patterns\n- Results are paginated with 50 matches per page. Use the optional 'offset' parameter to request subsequent pages.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "grep",
+        "description": "Searches the contents of files in the project with a regular expression\n\n- Prefer this tool to path search when searching for symbols in the project, because you won't need to guess what path it's in.\n- Supports full regex syntax (eg. \"log.*Error\", \"function\\\\s+\\\\w+\", etc.)\n- Pass an `include_pattern` if you know how to narrow your search on the files system\n- Never use this tool to search for paths. Only search file contents with this tool.\n- Use this tool when you need to find files containing specific patterns\n- Results are paginated with 20 matches per page. Use the optional 'offset' parameter to request subsequent pages.\n- DO NOT use HTML entities solely to escape characters in the tool parameters.",
+        "input_schema": {
+          "required": [
+            "regex"
+          ],
+          "properties": {
+            "regex": {
+              "description": "A regex pattern to search for in the entire project. Note that the regex will be parsed by the Rust `regex` crate.\n\nDo NOT specify a path here! This will only be matched against the code **content**.",
+              "type": "string"
+            },
+            "include_pattern": {
+              "description": "A glob pattern for the paths of files to include in the search.\nSupports standard glob patterns like \"**/*.rs\" or \"frontend/src/**/*.ts\".\nIf omitted, all files in the project will be searched.\n\nThe glob pattern is matched against the full path including the project root directory.\n\n<example>\nIf the project has the following root directories:\n\n- /a/b/backend\n- /c/d/frontend\n\nUse \"backend/**/*.rs\" to search only Rust files in the backend root directory.\nUse \"frontend/src/**/*.ts\" to search TypeScript files only in the frontend root directory (sub-directory \"src\").\nUse \"**/*.rs\" to search Rust files across all root directories.\n</example>",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "offset": {
+              "description": "Optional starting position for paginated results (0-based).\nWhen not provided, starts from the beginning.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "default": 0
+            },
+            "case_sensitive": {
+              "description": "Whether the regex is case-sensitive. Defaults to false (case-insensitive).",
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "description": "Searches the contents of files in the project with a regular expression\n\n- Prefer this tool to path search when searching for symbols in the project, because you won't need to guess what path it's in.\n- Supports full regex syntax (eg. \"log.*Error\", \"function\\\\s+\\\\w+\", etc.)\n- Pass an `include_pattern` if you know how to narrow your search on the files system\n- Never use this tool to search for paths. Only search file contents with this tool.\n- Use this tool when you need to find files containing specific patterns\n- Results are paginated with 20 matches per page. Use the optional 'offset' parameter to request subsequent pages.\n- DO NOT use HTML entities solely to escape characters in the tool parameters.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "list_directory",
+        "description": "Lists files and directories in a given path. Prefer the `grep` or `find_path` tools when searching the codebase.",
+        "input_schema": {
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "description": "The fully-qualified path of the directory to list in the project.\n\nThis path should never be absolute, and the first component of the path should always be a root directory in a project.\n\n<example>\nIf the project has the following root directories:\n\n- directory1\n- directory2\n\nYou can list the contents of `directory1` by using the path `directory1`.\n</example>\n\n<example>\nIf the project has the following root directories:\n\n- foo\n- bar\n\nIf you wanna list contents in the directory `foo/baz`, you should use the path `foo/baz`.\n</example>",
+              "type": "string"
+            }
+          },
+          "description": "Lists files and directories in a given path. Prefer the `grep` or `find_path` tools when searching the codebase.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "move_path",
+        "description": "Moves or rename a file or directory in the project, and returns confirmation that the move succeeded.\n\nIf the source and destination directories are the same, but the filename is different, this performs a rename. Otherwise, it performs a move.\n\nThis tool should be used when it's desirable to move or rename a file or directory without changing its contents at all.",
+        "input_schema": {
+          "required": [
+            "source_path",
+            "destination_path"
+          ],
+          "properties": {
+            "source_path": {
+              "description": "The source path of the file or directory to move/rename.\n\n<example>\nIf the project has the following files:\n\n- directory1/a/something.txt\n- directory2/a/things.txt\n- directory3/a/other.txt\n\nYou can move the first file by providing a source_path of \"directory1/a/something.txt\"\n</example>",
+              "type": "string"
+            },
+            "destination_path": {
+              "description": "The destination path where the file or directory should be moved/renamed to.\nIf the paths are the same except for the filename, then this will be a rename.\n\n<example>\nTo move \"directory1/a/something.txt\" to \"directory2/b/renamed.txt\",\nprovide a destination_path of \"directory2/b/renamed.txt\"\n</example>",
+              "type": "string"
+            }
+          },
+          "description": "Moves or rename a file or directory in the project, and returns confirmation that the move succeeded.\n\nIf the source and destination directories are the same, but the filename is different, this performs a rename. Otherwise, it performs a move.\n\nThis tool should be used when it's desirable to move or rename a file or directory without changing its contents at all.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "now",
+        "description": "Returns the current datetime in RFC 3339 format.\nOnly use this tool when the user specifically asks for it or the current task would benefit from knowing the current datetime.",
+        "input_schema": {
+          "required": [
+            "timezone"
+          ],
+          "properties": {
+            "timezone": {
+              "description": "The timezone to use for the datetime.",
+              "oneOf": [
+                {
+                  "description": "Use UTC for the datetime.",
+                  "type": "string",
+                  "const": "utc"
+                },
+                {
+                  "description": "Use local time for the datetime.",
+                  "type": "string",
+                  "const": "local"
+                }
+              ]
+            }
+          },
+          "description": "Returns the current datetime in RFC 3339 format.\nOnly use this tool when the user specifically asks for it or the current task would benefit from knowing the current datetime.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "open",
+        "description": "This tool opens a file or URL with the default application associated with it on the user's operating system:\n\n- On macOS, it's equivalent to the `open` command\n- On Windows, it's equivalent to `start`\n- On Linux, it uses something like `xdg-open`, `gio open`, `gnome-open`, `kde-open`, `wslview` as appropriate\n\nFor example, it can open a web browser with a URL, open a PDF file with the default PDF viewer, etc.\n\nYou MUST ONLY use this tool when the user has explicitly requested opening something. You MUST NEVER assume that the user would like for you to use this tool.",
+        "input_schema": {
+          "required": [
+            "path_or_url"
+          ],
+          "properties": {
+            "path_or_url": {
+              "description": "The path or URL to open with the default application.",
+              "type": "string"
+            }
+          },
+          "description": "This tool opens a file or URL with the default application associated with it on the user's operating system:\n\n- On macOS, it's equivalent to the `open` command\n- On Windows, it's equivalent to `start`\n- On Linux, it uses something like `xdg-open`, `gio open`, `gnome-open`, `kde-open`, `wslview` as appropriate\n\nFor example, it can open a web browser with a URL, open a PDF file with the default PDF viewer, etc.\n\nYou MUST ONLY use this tool when the user has explicitly requested opening something. You MUST NEVER assume that the user would like for you to use this tool.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "read_file",
+        "description": "Reads the content of the given file in the project.\n\n- Never attempt to read a path that hasn't been previously mentioned.\n- For large files, this tool returns a file outline with symbol names and line numbers instead of the full content.\n  This outline IS a successful response - use the line numbers to read specific sections with start_line/end_line.\n  Do NOT retry reading the same file without line numbers if you receive an outline.\n- This tool supports reading image files. Supported formats: PNG, JPEG, WebP, GIF, BMP, TIFF.\n  Image files are returned as visual content that you can analyze directly.",
+        "input_schema": {
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "description": "The relative path of the file to read.\n\nThis path should never be absolute, and the first component of the path should always be a root directory in a project.\n\n<example>\nIf the project has the following root directories:\n\n- /a/b/directory1\n- /c/d/directory2\n\nIf you want to access `file.txt` in `directory1`, you should use the path `directory1/file.txt`.\nIf you want to access `file.txt` in `directory2`, you should use the path `directory2/file.txt`.\n</example>",
+              "type": "string"
+            },
+            "start_line": {
+              "description": "Optional line number to start reading on (1-based index)",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0,
+              "default": null
+            },
+            "end_line": {
+              "description": "Optional line number to end reading on (1-based index, inclusive)",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0,
+              "default": null
+            }
+          },
+          "description": "Reads the content of the given file in the project.\n\n- Never attempt to read a path that hasn't been previously mentioned.\n- For large files, this tool returns a file outline with symbol names and line numbers instead of the full content.\n  This outline IS a successful response - use the line numbers to read specific sections with start_line/end_line.\n  Do NOT retry reading the same file without line numbers if you receive an outline.\n- This tool supports reading image files. Supported formats: PNG, JPEG, WebP, GIF, BMP, TIFF.\n  Image files are returned as visual content that you can analyze directly.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "restore_file_from_disk",
+        "description": "Discards unsaved changes in open buffers by reloading file contents from disk.\n\nUse this tool when:\n- You attempted to edit files but they have unsaved changes the user does not want to keep.\n- You want to reset files to the on-disk state before retrying an edit.\n\nOnly use this tool after asking the user for permission, because it will discard unsaved changes.",
+        "input_schema": {
+          "required": [
+            "paths"
+          ],
+          "properties": {
+            "paths": {
+              "description": "The paths of the files to restore from disk.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Discards unsaved changes in open buffers by reloading file contents from disk.\n\nUse this tool when:\n- You attempted to edit files but they have unsaved changes the user does not want to keep.\n- You want to reset files to the on-disk state before retrying an edit.\n\nOnly use this tool after asking the user for permission, because it will discard unsaved changes.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "save_file",
+        "description": "Saves files that have unsaved changes.\n\nUse this tool when you need to edit files but they have unsaved changes that must be saved first.\nOnly use this tool after asking the user for permission to save their unsaved changes.",
+        "input_schema": {
+          "required": [
+            "paths"
+          ],
+          "properties": {
+            "paths": {
+              "description": "The paths of the files to save.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Saves files that have unsaved changes.\n\nUse this tool when you need to edit files but they have unsaved changes that must be saved first.\nOnly use this tool after asking the user for permission to save their unsaved changes.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "spawn_agent",
+        "description": "Spawns an agent to perform a delegated task.\n\nUse this tool when you want to:\n- Run multiple tasks in parallel.\n- Delegate a self-contained task where you only need the final outcome.\n\nDo NOT use this tool for tasks you could accomplish directly with one or two tool calls (e.g. reading a file, running a single command).\n\nYou will receive only the agent's final message as output.\n\n**New session** (no session_id): Creates a new agent that does NOT see your conversation history. Include all relevant context (file paths, requirements, constraints) in the message.\n\n**Follow-up** (with session_id): Sends a follow-up to an existing agent session. The agent already has full context, so send only a short, direct message — do NOT repeat the original task or context. Examples: \"Also update the tests\", \"Fix the compile error in foo.rs\", \"Retry\".\n\n- If spawning multiple agents that might write to the filesystem, provide guidance on how to avoid conflicts (e.g. assign each to different directories).",
+        "input_schema": {
+          "definitions": {
+            "SessionId": {
+              "description": "A unique identifier for a conversation session between a client and agent.\n\nSessions maintain their own context, conversation history, and state,\nallowing multiple independent interactions with the same agent.\n\nSee protocol docs: [Session ID](https://agentclientprotocol.com/protocol/session-setup#session-id)",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "message"
+          ],
+          "description": "Spawns an agent to perform a delegated task.\n\nUse this tool when you want to:\n- Run multiple tasks in parallel.\n- Delegate a self-contained task where you only need the final outcome.\n\nDo NOT use this tool for tasks you could accomplish directly with one or two tool calls (e.g. reading a file, running a single command).\n\nYou will receive only the agent's final message as output.\n\n**New session** (no session_id): Creates a new agent that does NOT see your conversation history. Include all relevant context (file paths, requirements, constraints) in the message.\n\n**Follow-up** (with session_id): Sends a follow-up to an existing agent session. The agent already has full context, so send only a short, direct message — do NOT repeat the original task or context. Examples: \"Also update the tests\", \"Fix the compile error in foo.rs\", \"Retry\".\n\n- If spawning multiple agents that might write to the filesystem, provide guidance on how to avoid conflicts (e.g. assign each to different directories).",
+          "type": "object",
+          "properties": {
+            "label": {
+              "description": "Short label displayed in the UI while the agent runs (e.g., \"Researching alternatives\")",
+              "type": "string"
+            },
+            "message": {
+              "description": "The prompt for the agent. For new sessions, include full context needed for the task. For follow-ups (with session_id), you can rely on the agent already having the previous message.",
+              "type": "string"
+            },
+            "session_id": {
+              "description": "Session ID of an existing agent session to continue instead of creating a new one.",
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/SessionId"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "terminal",
+        "description": "Executes a shell one-liner and returns the combined output.\n\nThis tool spawns a process using the user's shell, reads from stdout and stderr (preserving the order of writes), and returns a string with the combined output result.\n\nThe output results will be shown to the user already, only list it again if necessary, avoid being redundant.\n\nMake sure you use the `cd` parameter to navigate to one of the root directories of the project. NEVER do it as part of the `command` itself, otherwise it will error.\n\nDo not use this tool for commands that run indefinitely, such as servers (like `npm run start`, `npm run dev`, `python -m http.server`, etc) or file watchers that don't terminate on their own.\n\nFor potentially long-running commands, prefer specifying `timeout_ms` to bound runtime and prevent indefinite hangs.\n\nRemember that each invocation of this tool will spawn a new shell process, so you can't rely on any state from previous invocations.\n\nThe terminal emulator is an interactive pty, so commands may block waiting for user input.\nSome commands can be configured not to do this, such as `git --no-pager diff` and similar.",
+        "input_schema": {
+          "required": [
+            "command",
+            "cd"
+          ],
+          "properties": {
+            "command": {
+              "description": "The one-liner command to execute.",
+              "type": "string"
+            },
+            "cd": {
+              "description": "Working directory for the command. This must be one of the root directories of the project.",
+              "type": "string"
+            },
+            "timeout_ms": {
+              "description": "Optional maximum runtime (in milliseconds). If exceeded, the running terminal task is killed.",
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0
+            }
+          },
+          "description": "Executes a shell one-liner and returns the combined output.\n\nThis tool spawns a process using the user's shell, reads from stdout and stderr (preserving the order of writes), and returns a string with the combined output result.\n\nThe output results will be shown to the user already, only list it again if necessary, avoid being redundant.\n\nMake sure you use the `cd` parameter to navigate to one of the root directories of the project. NEVER do it as part of the `command` itself, otherwise it will error.\n\nDo not use this tool for commands that run indefinitely, such as servers (like `npm run start`, `npm run dev`, `python -m http.server`, etc) or file watchers that don't terminate on their own.\n\nFor potentially long-running commands, prefer specifying `timeout_ms` to bound runtime and prevent indefinite hangs.\n\nRemember that each invocation of this tool will spawn a new shell process, so you can't rely on any state from previous invocations.\n\nThe terminal emulator is an interactive pty, so commands may block waiting for user input.\nSome commands can be configured not to do this, such as `git --no-pager diff` and similar.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "web_search",
+        "description": "Search the web for information using your query.\nUse this when you need real-time information, facts, or data that might not be in your training.\nResults will include snippets and links from relevant web pages.",
+        "input_schema": {
+          "required": [
+            "query"
+          ],
+          "properties": {
+            "query": {
+              "description": "The search term or question to query on the web.",
+              "type": "string"
+            }
+          },
+          "description": "Search the web for information using your query.\nUse this when you need real-time information, facts, or data that might not be in your training.\nResults will include snippets and links from relevant web pages.",
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    ],
+    "system": "You are a highly skilled software engineer with extensive knowledge in many programming languages, frameworks, design patterns, and best practices.\r\n\r\n## Communication\r\n\r\n- Be conversational but professional.\r\n- Refer to the user in the second person and yourself in the first person.\r\n- Format your responses in markdown. Use backticks to format file, directory, function, and class names.\r\n- NEVER lie or make things up.\r\n- Refrain from apologizing all the time when results are unexpected. Instead, just try your best to proceed or explain the circumstances to the user without apologizing.\r\n\r\n## Tool Use\r\n\r\n- Make sure to adhere to the tools schema.\r\n- Provide every required argument.\r\n- DO NOT use tools to access items that are already available in the context section.\r\n- Use only the tools that are currently available.\r\n- DO NOT use a tool that is not available just because it appears in the conversation. This means the user turned it off.\r\n- You can call multiple tools in a single response. If you intend to call multiple tools and there are no dependencies between them, make all independent tool calls in parallel. Maximize use of parallel tool calls where possible to increase efficiency. However, if some tool calls depend on previous calls to inform dependent values, do NOT call these tools in parallel and instead call them sequentially. For instance, if one operation must complete before another starts, run these operations sequentially instead. Never use placeholders or guess missing parameters in tool calls.\r\n- When running commands that may run indefinitely or for a long time (such as build scripts, tests, servers, or file watchers), specify `timeout_ms` to bound runtime. If the command times out, the user can always ask you to run it again with a longer timeout or no timeout if they're willing to wait or cancel manually.\r\n- Avoid HTML entity escaping - use plain characters instead.\r\n\r\n## Searching and Reading\r\n\r\nIf you are unsure how to fulfill the user's request, gather more information with tool calls and/or clarifying questions.\r\n\r\nIf appropriate, use tool calls to explore the current project, which contains the following root directories:\r\n\r\n\r\n- Bias towards not asking the user for help if you can find the answer yourself.\r\n- When providing paths to tools, the path should always start with the name of a project root directory listed above.\r\n- Before you read or edit a file, you must first find the full path. DO NOT ever guess a file path!\r\n- When looking for symbols in the project, prefer the `grep` tool.\r\n- As you learn about the structure of the project, use that information to scope `grep` searches to targeted subtrees of the project.\r\n- The user might specify a partial file path. If you don't know the full path, use `find_path` (not `grep`) before you read the file.\r\n\r\n## Code Block Formatting\r\n\r\nWhenever you mention a code block, you MUST ONLY use the following format:\r\n\r\n```path/to/Something.blah#L123-456\r\n(code goes here)\r\n```\r\n\r\nThe `#L123-456` means the line number range 123 through 456, and the path/to/Something.blah is a path in the project. (If there is no valid path in the project, then you can use /dev/null/path.extension for its path.) This is the ONLY valid way to format code blocks, because the Markdown parser does not understand the more common ```language syntax, or bare ``` blocks. It only understands this path-based syntax, and if the path is missing, then it will error and you will have to do it over again.\r\nJust to be really clear about this, if you ever find yourself writing three backticks followed by a language name, STOP!\r\nYou have made a mistake. You can only ever put paths after triple backticks!\r\n\r\n<example>\r\nBased on all the information I've gathered, here's a summary of how this system works:\r\n1. The README file is loaded into the system.\r\n2. The system finds the first two headers, including everything in between. In this case, that would be:\r\n```path/to/README.md#L8-12\r\n# First Header\r\nThis is the info under the first header.\r\n## Sub-header\r\n```\r\n3. Then the system finds the last header in the README:\r\n```path/to/README.md#L27-29\r\n## Last Header\r\nThis is the last header in the README.\r\n```\r\n4. Finally, it passes this information on to the next process.\r\n</example>\r\n\r\n<example>\r\nIn Markdown, hash marks signify headings. For example:\r\n```/dev/null/example.md#L1-3\r\n# Level 1 heading\r\n## Level 2 heading\r\n### Level 3 heading\r\n```\r\n</example>\r\n\r\nHere are examples of ways you must never render code blocks:\r\n<bad_example_do_not_do_this>\r\nIn Markdown, hash marks signify headings. For example:\r\n```\r\n# Level 1 heading\r\n## Level 2 heading\r\n### Level 3 heading\r\n```\r\n</bad_example_do_not_do_this>\r\n\r\nThis example is unacceptable because it does not include the path.\r\n\r\n<bad_example_do_not_do_this>\r\nIn Markdown, hash marks signify headings. For example:\r\n```markdown\r\n# Level 1 heading\r\n## Level 2 heading\r\n### Level 3 heading\r\n```\r\n</bad_example_do_not_do_this>\r\nThis example is unacceptable because it has the language instead of the path.\r\n\r\n<bad_example_do_not_do_this>\r\nIn Markdown, hash marks signify headings. For example:\r\n    # Level 1 heading\r\n    ## Level 2 heading\r\n    ### Level 3 heading\r\n</bad_example_do_not_do_this>\r\nThis example is unacceptable because it uses indentation to mark the code block instead of backticks with a path.\r\n\r\n<bad_example_do_not_do_this>\r\nIn Markdown, hash marks signify headings. For example:\r\n```markdown\r\n/dev/null/example.md#L1-3\r\n# Level 1 heading\r\n## Level 2 heading\r\n### Level 3 heading\r\n```\r\n</bad_example_do_not_do_this>\r\nThis example is unacceptable because the path is in the wrong place. The path must be directly after the opening backticks.\r\n\r\n## Fixing Diagnostics\r\n\r\n1. Make 1-2 attempts at fixing diagnostics, then defer to the user.\r\n2. Never simplify code you've written just to solve diagnostics. Complete, mostly correct code is more valuable than perfect code that doesn't solve the problem.\r\n\r\n## Debugging\r\n\r\nWhen debugging, only make code changes if you are certain that you can solve the problem.\r\nOtherwise, follow debugging best practices:\r\n1. Address the root cause instead of the symptoms.\r\n2. Add descriptive logging statements and error messages to track variable and code state.\r\n3. Add test functions and statements to isolate the problem.\r\n\r\n## Calling External APIs\r\n\r\n1. Unless explicitly requested by the user, use the best suited external APIs and packages to solve the task. There is no need to ask the user for permission.\r\n2. When selecting which version of an API or package to use, choose one that is compatible with the user's dependency management file(s). If no such file exists or if the package is not present, use the latest version that is in your training data.\r\n3. If an external API requires an API Key, be sure to point this out to the user. Adhere to best security practices (e.g. DO NOT hardcode an API key in a place where it can be exposed)\r\n\r\n## System Information\r\n\r\nOperating System: windows\r\nDefault Shell: sh\r\n\r\n## Model Information\r\n\r\nYou are powered by the model named Claude Sonnet 4.6.\r\n\r\n",
+    "temperature": 1.0
+  }
+}

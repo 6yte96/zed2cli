@@ -1,0 +1,19 @@
+HTTP/1.1 200 OK
+CF-RAY: [cfray]
+Connection: keep-alive
+Date: Sat, 28 Mar 2026 09:02:03 GMT
+Server: cloudflare
+Transfer-Encoding: chunked
+set-cookie: __cf_bm=[cookies].S; HttpOnly; Secure; Path=/; Domain=zed.dev; Expires=Sat, 28 Mar 2026 09:32:03 GMT
+x-zed-server-supports-status-messages: true
+
+{"event":{"type":"message_start","message":{"id":"msg_","type":"message","role":"assistant","content":[],"model":"claude-sonnet-4-6","usage":{"service_tier":"priority","input_tokens":3,"output_tokens":1,"cache_creation_input_tokens":9845,"cache_read_input_tokens":0}}}}
+{"event":{"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}}
+{"event":{"type":"ping"}}
+{"event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hey"}}}
+{"event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"! 😄 Whenever you're ready, just let me know what you'd like to work on. I'm"}}}
+{"event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":" here to help!"}}}
+{"event":{"type":"content_block_stop","index":0}}
+{"event":{"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"input_tokens":3,"output_tokens":33,"cache_creation_input_tokens":9845,"cache_read_input_tokens":0}}}
+{"event":{"type":"message_stop"}}
+{"status":"stream_ended"}
