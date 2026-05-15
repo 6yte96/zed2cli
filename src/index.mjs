@@ -6,9 +6,127 @@ import crypto from "node:crypto";
 export async function ZedAiPlugin({ client }) {
     const ZED_ENDPOINT = "https://cloud.zed.dev/completions";
     const ZED_VERSION = "0.228.0+stable.203.8421009ef8a022df1196d54bb42fd94366ec0988";
+    const ZED_MODELS = {
+        "claude-sonnet-4-6": {
+            name: "Claude Sonnet 4.6 (Zed Student)",
+            provider: "anthropic",
+            context: 1000000,
+            output: 64000,
+            supportsReasoning: true,
+        },
+        "claude-sonnet-4-5": {
+            name: "Claude Sonnet 4.5 (Zed Student)",
+            provider: "anthropic",
+            context: 200000,
+            output: 64000,
+            supportsReasoning: true,
+        },
+        "claude-haiku-4-5": {
+            name: "Claude Haiku 4.5 (Zed Student)",
+            provider: "anthropic",
+            context: 200000,
+            output: 64000,
+            supportsReasoning: false,
+        },
+        "gpt-5-5": {
+            name: "GPT-5.5 (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gpt-5-4": {
+            name: "GPT-5.4 (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gpt-5-3-codex": {
+            name: "GPT-5.3-Codex (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gpt-5-2": {
+            name: "GPT-5.2 (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gpt-5-2-codex": {
+            name: "GPT-5.2-Codex (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gpt-5-mini": {
+            name: "GPT-5 mini (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gpt-5-nano": {
+            name: "GPT-5 nano (Zed Student)",
+            provider: "openai",
+            context: 400000,
+            output: 128000,
+            supportsReasoning: true,
+        },
+        "gemini-3-1-pro": {
+            name: "Gemini 3.1 Pro (Zed Student)",
+            provider: "google",
+            context: 200000,
+            output: 64000,
+            supportsReasoning: true,
+        },
+        "gemini-3-flash": {
+            name: "Gemini 3 Flash (Zed Student)",
+            provider: "google",
+            context: 200000,
+            output: 64000,
+            supportsReasoning: true,
+        },
+        "grok-4": {
+            name: "Grok 4 (Zed Student)",
+            provider: "x_ai",
+            context: 128000,
+            output: 64000,
+            supportsReasoning: true,
+        },
+        "grok-4-fast": {
+            name: "Grok 4 Fast (Zed Student)",
+            provider: "x_ai",
+            context: 128000,
+            output: 64000,
+            supportsReasoning: true,
+        },
+        "grok-4-fast-non-reasoning": {
+            name: "Grok 4 Fast Non-Reasoning (Zed Student)",
+            provider: "x_ai",
+            context: 128000,
+            output: 64000,
+            supportsReasoning: false,
+        },
+        "grok-code-fast-1": {
+            name: "Grok Code Fast 1 (Zed Student)",
+            provider: "x_ai",
+            context: 256000,
+            output: 64000,
+            supportsReasoning: false,
+        },
+    };
 
     function buildZedPayload(originalBody) {
         const { messages = [], system, tools, max_tokens, temperature } = originalBody;
+        const model = originalBody.model && ZED_MODELS[originalBody.model]
+            ? originalBody.model
+            : "claude-sonnet-4-6";
+        const modelInfo = ZED_MODELS[model];
 
         // 1. Map Tools to Anthropic Schema (Inside provider_request)
         let cleanTools;
@@ -66,10 +184,10 @@ export async function ZedAiPlugin({ client }) {
             thread_id: crypto.randomUUID(),
             prompt_id: crypto.randomUUID(),
             intent: "user_prompt",
-            provider: "anthropic",
-            model: "claude-sonnet-4-6",
+            provider: modelInfo.provider,
+            model,
             provider_request: {
-                model: "claude-sonnet-4-6",
+                model,
                 max_tokens: max_tokens || 64000,
                 messages: cleanMessages,
                 ...(cleanTools && cleanTools.length > 0 && { tools: cleanTools }),
@@ -88,17 +206,18 @@ export async function ZedAiPlugin({ client }) {
             config.provider["zed-ai"] = {
                 name: "Zed AI",
                 api: "anthropic",
-                models: {
-                    "claude": {
-                        name: "Claude Sonnet 4.6 (Zed)",
-                        limit: { context: 200000, output: 64000 },
+                models: Object.fromEntries(Object.entries(ZED_MODELS).map(([id, model]) => [
+                    id,
+                    {
+                        name: model.name,
+                        limit: { context: model.context, output: model.output },
                         capabilities: {
-                            temperature: true, reasoning: true, attachment: true, toolcall: true,
+                            temperature: true, reasoning: model.supportsReasoning, attachment: true, toolcall: true,
                             input: { text: true, image: true, pdf: true },
                             output: { text: true }
                         }
                     }
-                }
+                ]))
             };
         },
 
@@ -214,8 +333,9 @@ export async function ZedAiPlugin({ client }) {
                             key: "zedToken",
                             message: "Enter your intercepted Zed Session Token (eyJ...)",
                             validate: (value) => {
-                                if (!value || !value.trim().startsWith("eyJ")) {
-                                    return "Invalid token format. It should be a JWT starting with 'eyJ'.";
+                                const token = (value || "").trim().replace(/^Bearer\s+/i, "");
+                                if (!token.startsWith("eyJ")) {
+                                    return "Invalid token format. Paste a JWT starting with 'eyJ' or an Authorization header starting with 'Bearer eyJ'.";
                                 }
                                 return undefined;
                             }
@@ -224,7 +344,7 @@ export async function ZedAiPlugin({ client }) {
                     async authorize(inputs) {
                         return {
                             type: "success",
-                            key: (inputs.zedToken || "").trim().replace(/\s+/g, ""),
+                            key: (inputs.zedToken || "").trim().replace(/^Bearer\s+/i, "").replace(/\s+/g, ""),
                             expires: Date.now() + (1000 * 60 * 60 * 24 * 365)
                         };
                     }
@@ -234,4 +354,5 @@ export async function ZedAiPlugin({ client }) {
     };
 }
 
+export const server = ZedAiPlugin;
 export default ZedAiPlugin;

@@ -1,103 +1,93 @@
-# OpenCode Zed AI Plugin
+# zed-open
 
-This plugin bridges **OpenCode** with **Zed's private AI API**, allowing you to use **Claude Sonnet 4.6** directly within OpenCode with full agentic capabilities (file reading, writing, terminal execution, etc.).
+OpenCode plugin for using Zed-hosted AI models through Zed's `cloud.zed.dev/completions` endpoint.
 
-## 🚀 Features
+This is an unofficial bridge. It is not affiliated with Zed, Anthropic, OpenAI, Google, xAI, or OpenCode.
 
-- **Claude Sonnet 4.6**: High-speed, high-reasoning model from Anthropic via Zed.
-- **Full Agentic Support**: Maps OpenCode's tools (terminal, read_file, etc.) to Zed's protocol.
-- **Clean UI**: Automatically hides internal reasoning and XML tags in collapsible subtasks.
-- **Secure Auth**: Uses your intercepted Zed Session Token stored safely in OpenCode.
+## What Works
 
-## 🛠️ Installation
+- Registers a `zed-ai` provider in OpenCode.
+- Uses your Zed session token for authentication.
+- Sends OpenCode chat/tool requests to Zed's hosted completions endpoint.
+- Supports OpenCode tool calls through the streamed response adapter.
+- Exposes Zed-hosted models that are available on the Zed Student plan.
 
-### 1. Create the Plugin Folder
-Navigate to your OpenCode configuration directory (usually `~/.config/opencode`) and create the plugin structure:
+## Student Plan Models
 
-```bash
-cd $HOME/.config/opencode
-mkdir -p node_modules/opencode-zed-ai
+The Zed docs say Claude Opus models, GPT-5.5 pro, and GPT-5.4 pro are not available on the Student plan, so they are intentionally not registered here.
+
+Configured model IDs:
+
+```text
+zed-ai/claude-sonnet-4-6
+zed-ai/claude-sonnet-4-5
+zed-ai/claude-haiku-4-5
+zed-ai/gpt-5-5
+zed-ai/gpt-5-4
+zed-ai/gpt-5-3-codex
+zed-ai/gpt-5-2
+zed-ai/gpt-5-2-codex
+zed-ai/gpt-5-mini
+zed-ai/gpt-5-nano
+zed-ai/gemini-3-1-pro
+zed-ai/gemini-3-flash
+zed-ai/grok-4
+zed-ai/grok-4-fast
+zed-ai/grok-4-fast-non-reasoning
+zed-ai/grok-code-fast-1
 ```
 
-### 2. Add Plugin Files
-Download or create the following files inside `node_modules/opencode-zed-ai/`:
+Reference: https://zed.dev/docs/ai/models
 
-- `index.mjs` (The main proxy script)
-- `package.json` (Plugin metadata)
+## Install
 
-**Example `package.json` for the plugin:**
+Clone this repo and copy the plugin files into OpenCode's config plugin directory:
+
+```bash
+mkdir -p "$HOME/.config/opencode/node_modules/opencode-zed-ai"
+cp src/index.mjs "$HOME/.config/opencode/node_modules/opencode-zed-ai/index.mjs"
+cp src/package.json "$HOME/.config/opencode/node_modules/opencode-zed-ai/package.json"
+```
+
+OpenCode 1.14 may try to install bare plugin names from npm. Use an explicit local file path in `~/.config/opencode/config.json`:
+
 ```json
 {
-  "name": "opencode-zed-ai",
-  "version": "1.0.0",
-  "main": "./index.mjs",
-  "type": "module"
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["/home/YOUR_USER/.config/opencode/node_modules/opencode-zed-ai/index.mjs"]
 }
 ```
 
-### 3. Register the Plugin in OpenCode
-Edit your global OpenCode configuration file located at `~/.config/opencode/config.json`. Add the plugin and the provider definition:
+Replace `/home/YOUR_USER` with your real home directory.
 
-```json
-{
-  "plugin": ["opencode-zed-ai"],
-  "provider": {
-    "zed-ai": {
-      "name": "Zed AI",
-      "api": "anthropic",
-      "models": {
-        "claude": {
-          "name": "Claude Sonnet 4.6 (Zed)",
-          "limit": {
-            "context": 200000,
-            "output": 64000
-          },
-          "capabilities": {
-            "temperature": true,
-            "reasoning": true,
-            "attachment": true,
-            "toolcall": true,
-            "input": { "text": true, "image": true, "pdf": true },
-            "output": { "text": true }
-          }
-        }
-      }
-    }
-  }
-}
-```
+## Authenticate
 
-## 🔑 Authentication
-
-To use Zed's API, you need to intercept your **Zed Session Token**.
-
-1.  Open Zed and capture the network traffic (using tools like Fiddler, Proxyman, or Burp).
-2.  Look for a request to `cloud.zed.dev`.
-3.  Copy the `Authorization: Bearer eyJ...` token.
-4.  In your terminal, run the following OpenCode command:
+Capture a Zed session token from a Zed request to `cloud.zed.dev`. You can paste either the raw JWT or the full `Bearer eyJ...` value:
 
 ```bash
-opencode providers login --provider zed-ai
+opencode providers login --provider zed-ai --method "Login with Zed Session Token"
 ```
 
-5.  Paste your token when prompted.
+The token is stored by OpenCode in its auth storage.
 
-## 🖱️ Usage
+## Verify
 
-Once installed and logged in, you can select the model inside OpenCode:
+List the registered models:
 
-1.  Type `/models` in the OpenCode TUI.
-2.  Select `zed-ai/claude`.
-3.  Start chatting! You can now ask it to perform tasks like:
-    - *"Run netstat and tell me what ports are open"*
-    - *"Analyze the code in src/index.js"*
-    - *"Create a new test file for my API"*
+```bash
+opencode models zed-ai
+```
 
-## ⚠️ Troubleshooting
+Run OpenCode with a Zed-hosted model:
 
-- **401 Unauthorized**: Your Zed token has expired or is invalid. Intercept a fresh token and run the login command again.
-- **400 Bad Request**: Ensure your `config.json` matches the schema provided above exactly.
-- **Model not showing**: Ensure the folder name is `opencode-zed-ai` and it is located inside the `node_modules` folder of your OpenCode config directory.
+```bash
+opencode -m zed-ai/claude-sonnet-4-6
+```
 
----
-*Disclaimer: This is an unofficial plugin and is not affiliated with Zed or Anthropic.*
+Or select one in the TUI with `/models`.
+
+## Notes
+
+- Zed can change hosted model IDs, plan access, request shape, or endpoint behavior at any time.
+- A `401 Unauthorized` usually means the Zed session token expired or was pasted incorrectly.
+- A model that appears in OpenCode can still fail if Zed does not permit it for your account or if the internal model ID changes.
