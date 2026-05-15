@@ -70,6 +70,34 @@ opencode providers login --provider zed-ai --method "Login with Zed Session Toke
 
 The token is stored by OpenCode in its auth storage.
 
+### Local Token Helper
+
+On Linux, if you are signed in to Zed locally and your desktop keyring is available, you can use the included helper to request a fresh LLM JWT token:
+
+```bash
+./scripts/zed-token.sh
+```
+
+Dependencies:
+
+```bash
+sudo apt install libsecret-tools jq curl  # Debian/Ubuntu
+sudo dnf install libsecret jq curl        # Fedora
+```
+
+The helper reads your local Zed sign-in credential from the system keyring, verifies it with Zed, requests an LLM token, and prints both the raw JWT and `Bearer ...` form. It can also save the raw token to a file with restricted permissions:
+
+```bash
+./scripts/zed-token.sh --save
+./scripts/zed-token.sh --save /tmp/zed-token.txt
+```
+
+Use the token with OpenCode:
+
+```bash
+opencode providers login --provider zed-ai --method "Login with Zed Session Token"
+```
+
 ## Verify
 
 List the registered models:
@@ -91,3 +119,4 @@ Or select one in the TUI with `/models`.
 - Zed can change hosted model IDs, plan access, request shape, or endpoint behavior at any time.
 - A `401 Unauthorized` usually means the Zed session token expired or was pasted incorrectly.
 - A model that appears in OpenCode can still fail if Zed does not permit it for your account or if the internal model ID changes.
+- Keep generated tokens private. Use this helper only on your own machine for the Zed account you are signed in to.
