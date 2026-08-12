@@ -1,0 +1,36 @@
+# zed-open for Hermes Agent (https://hermes-agent.nousresearch.com)
+#
+# NOTE: Hermes is NOT installed in this environment yet, so this is a
+# reference example. Merge the `providers` block into your existing
+# ~/.hermes/config.yaml, or run `hermes config set` for each key.
+# Validate afterwards with `hermes doctor` / `hermes providers list`.
+#
+# 1) Start the bridge proxy (it holds your Zed token):
+#      ./scripts/zed-proxy.sh
+# 2) Merge the block below (OpenAI-compatible endpoint -> the proxy).
+#    The proxy ignores the api_key; the token lives inside the proxy.
+
+active_provider: zed-ai
+
+providers:
+  zed-ai:
+    base_url: "http://127.0.0.1:8787/v1"
+    api_key: "${ZED_TOKEN}"            # any value works; proxy authenticates to Zed
+    models:
+      - "claude-sonnet-4-6"
+      - "claude-sonnet-5"
+      - "claude-haiku-4-5"
+      - "gpt-5.5"
+      - "gpt-5.4"
+      - "gpt-5-mini"
+      - "gpt-5-nano"
+      - "gpt-5.6-luna"
+      - "gemini-3-flash"
+      - "gemini-3.5-flash"
+      - "gemini-3.1-pro-preview"
+      # Full catalog: GET http://127.0.0.1:8787/v1/models
+
+# CLI equivalents:
+#   hermes config set active_provider zed-ai
+#   hermes config set providers.zed-ai.base_url http://127.0.0.1:8787/v1
+#   hermes config set providers.zed-ai.api_key "${ZED_TOKEN}"

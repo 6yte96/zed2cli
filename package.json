@@ -1,0 +1,57 @@
+{
+  "name": "zed2cli",
+  "version": "1.0.0",
+  "description": "Use Zed-hosted AI models from opencode, pi, hermes, or any OpenAI-compatible CLI through your Zed subscription — without running Zed.",
+  "type": "module",
+  "bin": {
+    "zed2cli": "./cli.mjs"
+  },
+  "files": [
+    "cli.mjs",
+    "src/index.mjs",
+    "src/models.mjs",
+    "src/proxy.mjs",
+    "src/package.json",
+    "src/pi/zed-ai.mjs",
+    "scripts/",
+    "config/",
+    "README.md",
+    "INSTALL.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "zed",
+    "zed-ai",
+    "opencode",
+    "pi",
+    "hermes",
+    "llm",
+    "ai",
+    "bridge",
+    "proxy",
+    "openai-compatible",
+    "claude",
+    "gpt",
+    "gemini"
+  ],
+  "license": "MIT",
+  "author": "6yte96",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/6yte96/zed2cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/6yte96/zed2cli/issues"
+  },
+  "homepage": "https://github.com/6yte96/zed2cli",
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "scripts": {
+    "prepublishOnly": "node --check cli.mjs && bash -n scripts/*.sh"
+  }
+}
