@@ -1,173 +1,373 @@
 # zed2cli
 
-Use **Zed-hosted AI models** from your terminal coding agents — **OpenCode**, **pi**, **Hermes**, or any OpenAI-compatible CLI — through your Zed subscription, without running Zed.
+Use Zed hosted AI models from your terminal coding agents. It works with
+OpenCode, pi, Hermes, and any other tool that speaks the OpenAI API, all
+through your existing Zed subscription and without running the Zed editor.
 
-This is an unofficial bridge. It is not affiliated with Zed, Anthropic, OpenAI, Google, xAI, or OpenCode.
+This is an unofficial bridge. It is not affiliated with Zed, Anthropic,
+OpenAI, Google, xAI, or OpenCode.
 
-## Install
+## For users
+
+### What this does for you
+
+Zed keeps a set of AI models behind your Zed account. Normally you can only
+reach them from inside the Zed editor. zed2cli lets your usual command line
+agents use those same models through your Zed plan.
+
+There are two ways to connect:
+
+1. A plugin for OpenCode. It works with OpenCode 1 and OpenCode 2, and the
+   installer picks the right build for the version you have. It runs inside
+   OpenCode, so no extra process is needed. This is the recommended path.
+2. A local bridge proxy. It exposes a normal OpenAI style API on your own
+   machine. Point pi, Hermes, or any other OpenAI compatible client at it.
+
+### Install
+
+Install it globally with npm or bun:
 
 ```bash
-npm install -g zed2cli          # or:  bun add -g zed2cli
+npm install -g zed2cli
+bun add -g zed2cli
 ```
 
 Or run it on the fly without installing anything:
 
 ```bash
-npx zed2cli geo-check           # or:  bunx zed2cli doctor
+npx zed2cli geo-check
+bunx zed2cli doctor
 ```
 
-> **New here? Follow [`INSTALL.md`](INSTALL.md)** — the step-by-step install runbook for OpenCode, pi, Hermes, and any OpenAI-compatible CLI.
+If this is your first time, follow [`INSTALL.md`](INSTALL.md). It is the step
+by step runbook for OpenCode, pi, Hermes, and any OpenAI compatible CLI.
 
-## Commands
+### Commands
 
 ```bash
-zed2cli install-opencode        # install the opencode plugin (no proxy needed)
+zed2cli install-opencode        # install the OpenCode plugin, picks the build for your version
 zed2cli install-pi              # register the zed-ai provider with pi
-zed2cli proxy                   # start the OpenAI-compatible bridge proxy
-zed2cli token --raw             # print a fresh JWT (or --export-access-token / --save-access-token)
-zed2cli daemon install          # auto-refresh the JWT every ~50 min (systemd)
-zed2cli geo-check               # diagnose geo-blocking (egress IP + cf-ray edge)
-zed2cli doctor                  # environment + token + network diagnostic
-zed2cli help                    # full usage
+zed2cli proxy                   # start the OpenAI compatible bridge proxy
+zed2cli token --raw             # print a fresh JWT
+zed2cli daemon install          # refresh the JWT every 50 minutes with systemd
+zed2cli geo-check               # diagnose geo blocking
+zed2cli doctor                  # check your environment, tokens, and integrations
+zed2cli help                    # show full usage
 ```
 
-## How it works
+### Check your setup
 
-Zed exposes a proprietary endpoint, `POST https://cloud.zed.dev/completions`, authenticated with a short-lived JWT from your Zed account. It speaks neither OpenAI nor Anthropic natively — it wraps the provider request in a `provider_request` envelope and streams back NDJSON events.
+`zed2cli doctor` inspects the whole chain and tells you what is wrong. It lists
+every token source with its expiry, whether the OpenCode plugin matches your
+OpenCode version, and whether the bridge proxy is running.
 
-zed2cli bridges that protocol two ways:
-
-| Agent | Bridge | How |
-|-------|--------|-----|
-| **OpenCode** (preferred) | Plugin (`src/index.mjs`) | Registers a `zed-ai` provider (as an `@ai-sdk/openai-compatible` provider with a custom `fetch`); translates OpenAI ⇄ Zed in-process. No proxy needed. Works on OpenCode 1.18. |
-| **pi** (preferred) | Extension + proxy | `src/pi/zed-ai.mjs` registers a `zed-ai` provider pointing at the local OpenAI-compatible bridge (`src/proxy.mjs`). |
-| **Hermes** | Proxy only | Point Hermes at `http://127.0.0.1:8787/v1` (see `config/hermes/zed-ai.yaml`). |
-| **Anything OpenAI-compatible** | Proxy only | `src/proxy.mjs` speaks `/v1/chat/completions` + `/v1/models`. |
-
-```
-┌────────────┐   OpenAI API    ┌─────────────────────┐   Zed envelope + NDJSON   ┌────────────────────┐
-│ opencode   │◄───────────────►│  zed2cli bridge     │◄─────────────────────────►│ cloud.zed.dev      │
-│ pi         │   /v1/chat/…    │  src/proxy.mjs      │   provider_request         │ /completions       │
-│ hermes     │   /v1/models    │  (or opencode       │                            │ (Zed subscription) │
-│ any CLI    │                 │   plugin, in-proc)  │                            │                    │
-└────────────┘                 └─────────────────────┘                            └────────────────────┘
+```bash
+zed2cli doctor
 ```
 
-## Authenticate
+The output names a stale token plainly instead of failing later in silence:
 
-Zed JWTs are short-lived (~1 hour). Get a fresh one three ways:
+```text
+Token sources:
+  ZED_TOKEN env     : not set
+  keyring/resolver  : valid for 60 min  (user 6yte96)
+                      from: keyring (auto-refresh OK)
+  .zed_jwt_token    : EXPIRED 49 day(s) ago  (user 6yte96)
+  opencode zed-ai   : EXPIRED 63 day(s) ago  (user 6yte96)
 
-1. **Keyring (best)** — if you're signed in to Zed on this machine:
+Integration:
+  opencode plugin   : v2
+  bridge proxy 8787 : not running (start: zed2cli proxy)
+```
+
+If a line says `EXPIRED`, sign in to Zed again and run `zed2cli token`, or
+start the refresh daemon so the file stays current.
+
+### Sign in and get a token
+
+A Zed JWT is short lived. It lasts about one hour. You can get one in three
+ways.
+
+1. From the keyring, which is best. This works when you are already signed in
+   to Zed on this machine.
+
    ```bash
-   zed2cli token            # shows token + info
-   zed2cli token --raw      # raw JWT only (for scripting)
-   zed2cli token --save     # saves to ~/.zed_jwt_token (chmod 600)
+   zed2cli token            # show the token and its details
+   zed2cli token --raw      # print only the raw JWT, for scripting
+   zed2cli token --save     # save it to ~/.zed_jwt_token
    ```
-   Needs `libsecret-tools jq curl` (`sudo apt install libsecret-tools jq curl`).
-2. **Paste a token you captured** from a request Zed makes to `cloud.zed.dev` (any `Bearer eyJ…`).
-3. **Env var** — `export ZED_TOKEN=eyJ…`.
+
+   The keyring path needs `libsecret-tools`, `jq`, and `curl`. On Debian or
+   Ubuntu you can install them with `sudo apt install libsecret-tools jq curl`.
+
+2. Paste a token you captured from Zed. Open Zed, make any AI request, then
+   copy the `Bearer eyJ...` value from a request to `cloud.zed.dev`.
+
+3. Use an environment variable. Set `ZED_TOKEN` to your JWT.
 
 Keep tokens private. Never commit them.
 
-## Auto-refresh (no more hourly pasting)
+### Keep the token fresh automatically
 
-Zed JWTs last ~1 hour. Run the refresh daemon once and it keeps `~/.zed_jwt_token` fresh in the background — the opencode plugin, the proxy, and every command read it automatically:
+Zed JWTs last about one hour. Run the refresh daemon once and it keeps a fresh
+token in `~/.zed_jwt_token` in the background. The OpenCode plugin, the proxy,
+and every command read that file automatically.
 
 ```bash
-zed2cli daemon start     # background loop (every ~50 min)
-zed2cli daemon install   # or: systemd user service (auto-start at login)
-zed2cli daemon status    # PID + current expiry
+zed2cli daemon start     # background loop, refreshes every 50 minutes
+zed2cli daemon install   # or an auto starting systemd user service
+zed2cli daemon status    # show the process and the current expiry
 ```
 
-On a machine where Zed is **not** logged in, do this once (the long-lived access token keeps refreshing forever):
+On a machine where Zed is not signed in, set it up once like this. The long
+lived access token keeps refreshing itself forever.
 
 ```bash
-# machine where Zed IS logged in:
-zed2cli token --export-access-token     # prints: 571580 {"version":2,…}
+# on the machine where Zed is signed in:
+zed2cli token --export-access-token     # prints something like: 571580 {"version":2,...}
 
-# on the server (paste the printed line):
-zed2cli token --save-access-token -     # stores ~/.zed_access_token
+# on the other machine, paste that printed line:
+zed2cli token --save-access-token -
 zed2cli daemon install
 ```
 
-Everything downstream picks the fresh file up automatically: the opencode plugin falls back to `~/.zed_jwt_token` (or `ZED_TOKEN_FILE`), and the proxy re-reads `--token-file` on expiry (or `--token-script "zed2cli token --raw"` resolves from any source).
+A pasted JWT still expires in about one hour and cannot refresh itself. Only
+the keyring or a saved access token can mint fresh ones. That is what the
+daemon uses, so typing a JWT by hand is only a fallback.
 
-> Note: a pasted **JWT** (`~/.zed_jwt_token`) still expires in ~1 h and cannot self-refresh — only the keyring or a saved access token can mint fresh ones. That's exactly what the daemon uses, so manual JWT entry is only a fallback.
+### Quick start for OpenCode
 
-## Quick start — OpenCode (plugin, no proxy)
+OpenCode uses the plugin, so no proxy is needed. The installer detects your
+OpenCode version and installs the matching build.
 
 ```bash
 zed2cli install-opencode
-opencode providers login --provider zed-ai
-#   single prompt — paste your eyJ… JWT where it asks for the API key
-opencode models zed-ai                # expect 16 models
+opencode models | grep zed-ai
 opencode run -m zed-ai/claude-sonnet-4-6 "hello"
 ```
 
-## Quick start — pi (extension + proxy)
+On OpenCode 2, no login step is needed. As long as `zed2cli token` can resolve
+a JWT from your keyring, or `ZED_TOKEN` is set, the plugin works. On OpenCode 1,
+run `opencode providers login --provider zed-ai` once and paste your `eyJ...`
+JWT when it asks for an API key.
+
+If the model shows as unavailable, run `zed2cli doctor` and confirm the plugin
+line shows the version that matches your OpenCode.
+
+### Quick start for pi
+
+pi speaks standard OpenAI, so it needs the local bridge proxy running.
 
 ```bash
-zed2cli proxy              # bridge proxy on http://127.0.0.1:8787/v1
+zed2cli proxy              # starts the bridge on http://127.0.0.1:8787/v1
 zed2cli install-pi         # registers the zed-ai provider
 pi --list-models | grep zed-ai
 pi --provider zed-ai --model zed-ai/claude-sonnet-4-6 "hello"
 ```
 
-## Models
+### Quick start for Hermes or any OpenAI compatible tool
 
-Registered models (Student plan, from `GET https://cloud.zed.dev/models`):
+Start the proxy and point the tool at it:
 
-```text
-anthropic  claude-sonnet-5, claude-sonnet-4-6, claude-sonnet-4-5, claude-haiku-4-5
-open_ai    gpt-5.6-sol, gpt-5.6-terra, gpt-5.6-luna, gpt-5.5, gpt-5.4,
-           gpt-5.3-codex, gpt-5.2, gpt-5-mini, gpt-5-nano
-google     gemini-3.1-pro-preview, gemini-3.5-flash, gemini-3-flash
+```bash
+zed2cli proxy
+curl -s http://127.0.0.1:8787/v1/models | jq '.data[].id'
 ```
 
-If your plan differs, refresh the catalog and update `src/models.mjs` (and the inline list in `src/pi/zed-ai.mjs`):
+For Hermes, merge `config/hermes/zed-ai.yaml` into your `~/.hermes/config.yaml`.
+For any other tool, set the base URL to `http://127.0.0.1:8787/v1` and use any
+API key. The proxy ignores the key and authenticates to Zed itself.
+
+### Models
+
+This catalog was verified against `GET https://cloud.zed.dev/models` using a
+Zed Student plan token. Other plans may expose a different list.
+
+Anthropic: `claude-sonnet-5`, `claude-sonnet-4-6`, `claude-sonnet-4-5`,
+`claude-haiku-4-5`
+
+OpenAI: `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4`,
+`gpt-5.3-codex`, `gpt-5.2`, `gpt-5-mini`, `gpt-5-nano`
+
+Google: `gemini-3.1-pro-preview`, `gemini-3.5-flash`, `gemini-3-flash`
+
+If your plan differs, refresh the catalog from the live endpoint:
 
 ```bash
 curl -s https://cloud.zed.dev/models -H "authorization: Bearer $ZED_TOKEN" | jq '.models[].id'
 ```
 
-## Troubleshooting
+### Troubleshooting
 
-| Symptom | Cause / fix |
-|---------|-------------|
-| `401 Unauthorized` | JWT expired (~1 h) or wrong. Re-run `zed2cli token` (or the daemon/proxy refresh automatically). |
-| `451 Access to … not available from this data center` | Geo-blocked network egress — affects **all** providers (Anthropic/OpenAI/Google). The block is keyed on the Cloudflare edge your request lands on (`cf-ray`), so no header/code change helps — the *egress* must move. Fixes: run on a machine in an allowed region, use a VPN exiting in the US/EU/SG/JP/AU, or route via a **Tailscale exit node** on an allowed-region machine (`sudo tailscale set --advertise-exit-node` on it, then `sudo tailscale set --exit-node=<ip>` here). Diagnose with `zed2cli geo-check`. |
-| HTTP 500 with `provider: openai` | Wrong provider name — must be `open_ai`. (Fixed in this repo.) |
-| Model not found | ID drift (e.g. `gpt-5-5` vs `gpt-5.5`). Refresh from `/models`. |
-| OpenAI models 400/500 | Use the catalog IDs with dots and `open_ai` provider. |
+**401 Unauthorized, or "Zed token expired or you are signed out".** Your JWT
+expired or is wrong. JWTs last about one hour. Run `zed2cli token` again, or
+let the daemon or proxy refresh it for you. The proxy and the plugin now say
+this plainly instead of failing silently.
 
-## Verified against the live endpoint (2026-08-12)
+**A stale token was in use with no warning.** `zed2cli doctor` now flags
+expired sources. The resolver and the plugin also ignore an already expired
+`ZED_TOKEN`, so a dead environment variable cannot win over a live keyring
+token. If `~/.zed_jwt_token` is old, `zed2cli token --save` rewrites it.
 
-- `GET https://cloud.zed.dev/models` with a Student-plan JWT returns the exact model catalog (16 models). **This is the authoritative source** — the previous hardcoded list was wrong: OpenAI model IDs use dots (`gpt-5.5`, not `gpt-5-5`) and the provider key is `open_ai` (underscore). Sending `provider: "openai"` yields HTTP 500.
-- A minimal `/completions` request with the correct envelope is accepted and routed to the provider.
-- The streaming translation (text deltas, tool calls, usage, `[DONE]`) was verified by replaying a captured trace through the bridge.
-- **Geo restriction:** from a datacenter in Hong Kong (HKG), Zed returns HTTP 451 for every provider. The token itself is valid (`/models` returns 200). If you see 451, run `zed2cli geo-check` and move egress to an allowed region.
+**Model unavailable: zed-ai/...** On OpenCode 2 this means the plugin did not
+load. Run `zed2cli install-opencode` to install the correct build for your
+version, then confirm with `zed2cli doctor` that the plugin line matches.
 
-## Known limitations
+**451 Access not available from this data center.** Your network egress is geo
+blocked. This affects all providers, Anthropic, OpenAI, and Google alike. The
+block is keyed on the Cloudflare edge your request lands on, so no header or
+code change helps. The egress itself has to move. Run from a machine in an
+allowed region, or use a VPN that exits in the US, EU, Singapore, Japan, or
+Australia, or route through a Tailscale exit node on an allowed region machine.
+Diagnose it with `zed2cli geo-check`.
 
-- `tool_choice` is not forwarded (tools are always offered); reasoning/thinking deltas from models like Claude Sonnet 5 are not surfaced as separate reasoning blocks.
-- Remote (non-data-URI) image URLs are skipped; paste images as base64 data URIs.
-- The tooling shells out to bash (Linux/macOS); on Windows use WSL or Git Bash.
+**HTTP 500 with the openai provider.** The provider name must be `open_ai`, with
+an underscore. This is already fixed in the repo.
 
-## Files
+**Model not found.** Model IDs can drift. Refresh them from the models endpoint
+and update the catalog.
+
+## For developers
+
+### How the bridge works
+
+Zed exposes a proprietary endpoint at `POST https://cloud.zed.dev/completions`.
+It is authenticated with a short lived JWT from your Zed account. It speaks
+neither OpenAI nor Anthropic natively. Requests are wrapped in a
+`provider_request` envelope, and responses stream back as newline delimited
+JSON events. zed2cli translates both directions.
+
+Shared catalog: `src/models.mjs`. It is the single source of truth for the 16
+models, each with its provider key, context size, output size, and capability
+flags. It is imported by the OpenCode plugin and the proxy. The pi extension
+carries its own inline copy because pi loads extensions from a virtual URL
+where relative imports do not resolve.
+
+### Entry points
+
+`cli.mjs` is the `zed2cli` binary. It dispatches each subcommand to the bash
+scripts in `scripts/`.
+
+`src/index.mjs` is the OpenCode plugin for OpenCode 2. It registers a `zed-ai`
+provider with `ctx.provider.transform`, then uses the `http.request` session
+hook to rewrite the OpenAI request into the Zed envelope and point it at
+`cloud.zed.dev/completions`, and the `http.response` hook to translate the Zed
+event stream back into OpenAI server sent events. Everything happens in
+process, so no proxy is required.
+
+`src/index.v1.mjs` is the older OpenCode 1 plugin, kept for older installs. It
+registers the provider through the V1 `config` hook and overrides
+`options.fetch`. The installer copies whichever file matches the OpenCode
+version it detects.
+
+`src/proxy.mjs` is the OpenAI compatible bridge. It serves `GET /v1/models` and
+`POST /v1/chat/completions` and forwards translated requests to Zed. It is what
+pi, Hermes, and any other OpenAI client use.
+
+`src/pi/zed-ai.mjs` is the pi extension. It registers a `zed-ai` provider that
+points at the local proxy through `ZED_PROXY_URL`.
+
+### Request translation
+
+OpenAI chat messages are mapped to Anthropic style content blocks. A string
+becomes a single text block. An `image_url` block with a base64 data URI
+becomes an image block. Assistant `tool_calls` become `tool_use` blocks, and
+`tool` role messages become `tool_result` blocks. The system prompt is sent
+both inside `provider_request` and at the top level. Tool definitions are
+mapped from `parameters` to `input_schema`.
+
+### Response translation
+
+Zed streams events of type `message_start`, `content_block_start`,
+`content_block_delta`, `content_block_stop`, `message_delta`, and
+`message_stop`, followed by a final line with `status: stream_ended`. Prose
+deltas become OpenAI content chunks. Tool use blocks are coalesced and emitted
+when the block stops. The stream ends with `data: [DONE]`.
+
+### Token resolution
+
+`scripts/zed-token.sh --raw` resolves a raw JWT from the best source available,
+in this order: the `ZED_TOKEN` environment variable (skipped when it is already
+expired), the system keyring, the `~/.zed_access_token` file, and finally the
+`~/.zed_jwt_token` file. Only the keyring and the access token file can mint
+fresh JWTs. The proxy re-runs its token script when it sees a 401. The resolver
+decodes the JWT and prints an `EXPIRED` warning when the token it returns is
+already dead.
+
+The OpenCode plugin resolves a token the same way, with two differences. It
+skips an already expired `ZED_TOKEN`, and it clears that variable when it
+shells out to the resolver, so a stale exported token cannot win. It prefers a
+`zed-token.sh` bundled beside it, then `zed2cli token --raw`, then
+`~/.zed_jwt_token`.
+
+### Adding or updating models
+
+Fetch the current catalog, then update `src/models.mjs`. If you change any
+model, update the inline list in `src/pi/zed-ai.mjs` to match. The two lists
+must stay identical.
+
+```bash
+curl -s https://cloud.zed.dev/models -H "authorization: Bearer $ZED_TOKEN" | jq '.models'
+```
+
+### Packaging and publishing
+
+The package ships `cli.mjs`, the files under `src` (including both
+`index.mjs` and `index.v1.mjs`), the scripts, and the config samples. It has no
+runtime dependencies and requires Node 18 or newer. The `prepublishOnly` script
+runs `node --check` over every source file and `bash -n scripts/*.sh`. The
+GitHub workflow at `.github/workflows/publish.yml` publishes to npm when a `v`
+prefixed tag is pushed.
+
+### Known limitations
+
+`tool_choice` is not forwarded, so tools are always offered. Reasoning and
+thinking deltas from models such as Claude Sonnet 5 are not surfaced as
+separate reasoning blocks. Remote image URLs are skipped, so images must be
+sent as base64 data URIs. The tooling shells out to bash, so on Windows you
+need WSL or Git Bash. The OpenCode 2 plugin needs OpenCode 2.0 or newer; the
+installer detects the major version and installs the OpenCode 1 plugin
+otherwise.
+
+### Security notes
+
+The bridge holds your token in memory only, or re-fetches it from your keyring,
+and it binds to `127.0.0.1` by default. The local proxy does not authenticate
+its callers, so any process on the machine can use it. Do not expose the proxy
+port on a network.
+
+### Verified against the live endpoint
+
+As of 2026, the following were confirmed against `cloud.zed.dev` with a Student
+plan token. `GET /models` returns the full catalog of 16 models. A minimal
+`/completions` request with the correct envelope is accepted and routed. The
+proxy translation was verified end to end, including streaming. The OpenCode 2
+plugin was verified end to end on OpenCode 2.0.29: the provider registers all
+16 models, a streaming reply comes back, and a tool call round trip returns the
+tool output to the model. Zed returns HTTP 451 for every provider from a geo
+blocked region such as a Hong Kong datacenter, even though the token itself is
+valid, because `/models` still returns 200.
+
+### File map
 
 ```text
-cli.mjs                   CLI dispatcher (bin: zed2cli)
-src/models.mjs            Verified model catalog + helpers (shared)
-src/index.mjs             OpenCode plugin (provider "zed-ai")
-src/proxy.mjs             OpenAI-compatible bridge proxy
-src/pi/zed-ai.mjs         pi extension (provider "zed-ai")
+cli.mjs                        CLI dispatcher, the zed2cli binary
+src/models.mjs                 verified model catalog and helpers, shared
+src/index.mjs                  OpenCode 2 plugin for the zed-ai provider
+src/index.v1.mjs               OpenCode 1 plugin, kept for older installs
+src/proxy.mjs                  OpenAI compatible bridge proxy
+src/pi/zed-ai.mjs              pi extension for the zed-ai provider
 config/opencode.json.example   OpenCode config sample
 config/hermes/zed-ai.yaml      Hermes config sample
-scripts/zed-token.sh      Unified JWT resolver (keyring / access token / file) + export/save
-scripts/zed-refresh-daemon.sh  Hourly JWT refresher (nohup or systemd user service)
-scripts/zed-proxy.sh      Bridge launcher with token auto-refresh
-scripts/geo-check.sh      Diagnose geo-blocking (egress IP + cf-ray edge)
-scripts/install-opencode.sh    One-command OpenCode plugin installer
-scripts/install-pi.sh          One-command pi extension installer
-.github/workflows/publish.yml  Publish to npm on v* tags
+scripts/zed-token.sh           unified JWT resolver, export, and save
+scripts/zed-refresh-daemon.sh  JWT refresher, nohup or systemd user service
+scripts/zed-proxy.sh           bridge launcher with token auto refresh
+scripts/geo-check.sh           geo blocking diagnosis
+scripts/install-opencode.sh    one command OpenCode plugin installer
+scripts/install-pi.sh          one command pi extension installer
+.github/workflows/publish.yml  publish to npm on version tags
 ```
+
+## License
+
+MIT. See [`LICENSE`](LICENSE).
