@@ -191,10 +191,10 @@ export const PROJECT_CONFIG: ProjectConfig = {
     handle: "6yte96",
   },
   nav: [
+    { id: "architecture", label: "Bridge" },
     { id: "playground", label: "Session" },
     { id: "features", label: "Capabilities" },
     { id: "models", label: "Models" },
-    { id: "architecture", label: "Source" },
   ],
   hero: {
     issueBadge: "v2.0.0",
