@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { PROJECT_CONFIG } from "@/config";
 
+export const dynamic = "force-static";
 export const alt = PROJECT_CONFIG.meta.title;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
