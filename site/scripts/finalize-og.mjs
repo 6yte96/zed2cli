@@ -32,7 +32,10 @@ async function walk(dir) {
     }
     if (!entry.name.endsWith(".html")) continue;
     const html = await readFile(full, "utf8");
-    const next = html.replace(/opengraph-image(\?[^"'\s>]*)?/g, "og.png");
+    // Replace only the bare token. Do not consume the characters that
+    // follow it: inside the React flight payload the URL is followed by
+    // an escaped quote, and eating the backslash breaks the page.
+    const next = html.replace(/opengraph-image/g, "og.png");
     if (next !== html) {
       await writeFile(full, next);
       rewrites += 1;
