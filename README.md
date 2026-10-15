@@ -327,13 +327,16 @@ To ship a release, bump the version and push to main:
 
 That is the whole flow. The Publish workflow runs on every push to main,
 verifies, then publishes that version with `--provenance` if it is not already
-on npm. Push without changing the version and it runs the checks, sees that the
-version is already published, and skips. There are no tags, no approvals, and
-no manual trigger.
+on npm, and creates the `vX.Y.Z` git tag and a GitHub release with generated
+notes. Push without changing the version and it runs the checks, sees that the
+version is already published, and skips. There are no approvals and no manual
+trigger.
 
-The only one time setup is an npm automation token with publish rights for the
-package, stored as the repository secret `NPM_TOKEN` (Settings, then Secrets
-and variables, then Actions). Nothing else is required.
+The one time setup, which is bringing an npm token and storing it as the
+repository secret `NPM_TOKEN`, is written out step by step in
+[`RELEASING.md`](RELEASING.md). That page also covers the versioning rules,
+where the version lives, and how to retry a failed release. Changes are
+recorded in [`CHANGELOG.md`](CHANGELOG.md).
 
 The companion workflow `.github/workflows/ci.yml` runs the same gates on pull
 requests, across Node 18, 20, and 22, so problems are caught before they reach
@@ -372,6 +375,8 @@ valid, because `/models` still returns 200.
 
 ```text
 cli.mjs                        CLI dispatcher, the zed2cli binary
+CHANGELOG.md                   notable changes per release
+RELEASING.md                   npm token setup and the release flow
 src/models.mjs                 verified model catalog and helpers, shared
 src/index.mjs                  OpenCode 2 plugin for the zed-ai provider
 src/index.v1.mjs               OpenCode 1 plugin, kept for older installs
