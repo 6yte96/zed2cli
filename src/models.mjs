@@ -217,6 +217,57 @@ export function resolveModel(id) {
     return ZED_MODELS[normalizeModelId(id)] ?? null;
 }
 
+/**
+ * Decode a JWT payload without verifying the signature. We only ever use this
+ * to read `exp`, `plan`, and the user name for diagnostics. Returns null when
+ * the value is not a decodable JWT.
+ */
+export function decodeJwt(token) {
+    if (!token || typeof token !== "string") return null;
+    const parts = token.trim().split(".");
+    if (parts.length < 2) return null;
+    try {
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const padded = b64 + "=".repeat((4 - (b64.length % 4)) % 4);
+        const json = Buffer.from(padded, "base64").toString("utf8");
+        const payload = JSON.parse(json);
+        return payload && typeof payload === "object" ? payload : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Expiry and identity for a Zed JWT, or null when it is not a JWT.
+ * `expired` is null when the token carries no `exp` claim.
+ * @returns {{ exp: number|null, expiresAt: Date|null, expired: boolean|null, plan: string|null, user: string|null }|null}
+ */
+export function jwtInfo(token) {
+    const payload = decodeJwt(token);
+    if (!payload) return null;
+    const exp = typeof payload.exp === "number" ? payload.exp : null;
+    return {
+        exp,
+        expiresAt: exp ? new Date(exp * 1000) : null,
+        expired: exp ? exp * 1000 <= Date.now() : null,
+        plan: payload.plan ?? null,
+        user: payload.github_user_login ?? payload.username ?? null,
+    };
+}
+
+/** Human friendly one line expiry summary for a token. */
+export function describeExpiry(token) {
+    const info = jwtInfo(token);
+    if (!info) return "not a JWT";
+    if (!info.exp) return "no expiry claim";
+    const mins = Math.round(Math.abs(info.exp * 1000 - Date.now()) / 60000);
+    if (info.expired) {
+        const days = Math.floor(mins / 1440);
+        return days >= 1 ? `EXPIRED ${days} day(s) ago` : `EXPIRED ${mins} min ago`;
+    }
+    return `valid for ${mins} min`;
+}
+
 /** Zed provider key (anthropic | google | open_ai | x_ai) for a model id. */
 export function zedProviderFor(id) {
     return resolveModel(id)?.provider ?? null;

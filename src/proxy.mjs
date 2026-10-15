@@ -35,6 +35,7 @@ import {
     DEFAULT_MODEL,
     normalizeModelId,
     resolveModel,
+    describeExpiry,
 } from "./models.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -135,16 +136,21 @@ function createTokenManager(args) {
         }
         if (!token) {
             console.error(
-                "[zed-proxy] ERROR: no token available. Set ZED_TOKEN, use --token-file, or --token-script."
+                "[zed-proxy] ERROR: no Zed token available. You are not signed in or no token source is set."
+            );
+            console.error(
+                "[zed-proxy] Fix: sign in to Zed on this machine and run `zed2cli token`, or paste an access token with `zed2cli token --save-access-token -`, or set ZED_TOKEN."
             );
             process.exit(1);
         }
+        console.error(`[zed-proxy] token loaded (${describeExpiry(token)})`);
     }
 
     async function refresh() {
         if (args.tokenScript) {
             try {
                 token = await runTokenScript(args.tokenScript);
+                console.error(`[zed-proxy] token refreshed (${describeExpiry(token)})`);
                 return true;
             } catch (err) {
                 console.error(`[zed-proxy] WARN: token refresh failed: ${err.message}`);
@@ -157,6 +163,7 @@ function createTokenManager(args) {
                 const fresh = normalizeToken(await readFile(args.tokenFile, "utf8"));
                 if (fresh) {
                     token = fresh;
+                    console.error(`[zed-proxy] token re-read from file (${describeExpiry(token)})`);
                     return true;
                 }
             } catch (err) {
@@ -261,6 +268,7 @@ function openAiMessagesToZed(messages, verbose) {
                     type: "tool_result",
                     tool_use_id: m.tool_call_id,
                     content: [{ type: "text", text: text || "" }],
+                    is_error: false,
                 }],
             });
         } else {
@@ -554,6 +562,15 @@ async function handleChatCompletions(req, res, tokenManager, args) {
                 const parsed = JSON.parse(text);
                 detail = parsed.message || parsed.error?.message || text;
             } catch { /* keep raw text */ }
+            if (zedRes.status === 401) {
+                detail =
+                    "Zed token expired or you are signed out. Run `zed2cli token` to mint a fresh token " +
+                    "(or `zed2cli daemon install` to keep it refreshed), then retry. Upstream said: " + detail;
+            } else if (zedRes.status === 451) {
+                detail =
+                    "Zed geo-blocked this request from your network egress. Run `zed2cli geo-check`. " +
+                    "Upstream said: " + detail;
+            }
             return { error: { status: zedRes.status, detail } };
         }
         return { response: zedRes };
@@ -709,6 +726,7 @@ async function main() {
                           : args.tokenScript
                             ? "script"
                             : "none",
+                    token: describeExpiry(tokenManager.get()),
                     defaultModel: DEFAULT_MODEL,
                 });
             } else {

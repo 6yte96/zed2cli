@@ -227,6 +227,34 @@ exchange_for_jwt() {
     return 1
 }
 
+# Decode the exp epoch (seconds) from a JWT. Prints 0 when unknown.
+jwt_exp_epoch() {
+    local tok="$1" payload
+    payload=$(printf '%s' "$tok" | cut -d. -f2 | tr '_-' '/+' | awk '{while (length($0) % 4 != 0) $0 = $0 "="; print}')
+    printf '%s' "$payload" | base64 -d 2>/dev/null | jq -r '.exp // 0' 2>/dev/null
+}
+
+# True (exit 0) when the token carries an exp that is already in the past.
+is_expired() {
+    local tok="$1" exp now
+    exp=$(jwt_exp_epoch "$tok")
+    case "$exp" in ''|*[!0-9]*) return 1 ;; esac
+    [ "$exp" -gt 0 ] 2>/dev/null || return 1
+    now=$(date +%s)
+    [ "$exp" -le "$now" ]
+}
+
+# Print a loud warning when a resolved token is already expired. This is the
+# one place that turns "silently signed out / stale token" into a message.
+note_expiry() {
+    local tok="$1" when
+    if is_expired "$tok"; then
+        when=$(date -d @"$(jwt_exp_epoch "$tok")" '+%Y-%m-%d %H:%M' 2>/dev/null || echo "unknown")
+        echo "[token] WARNING: the resolved token is EXPIRED ($when)." >&2
+        echo "[token] You are signed out or the saved token is stale. Sign in to Zed and run 'zed2cli token', or paste a fresh access token with 'zed2cli token --save-access-token -'." >&2
+    fi
+}
+
 # Resolve a raw JWT from ANY available source, best -> worst:
 #   1. ZED_TOKEN env (static)
 #   2. system keyring (Zed logged in here)        -> auto-refreshable
@@ -238,13 +266,18 @@ resolve_raw() {
     if [ -n "${ZED_TOKEN:-}" ]; then
         tok=$(printf '%s' "$ZED_TOKEN" | sed -e 's/^Bearer[[:space:]]*//I' -e 's/[[:space:]]//g')
         if [ -n "$tok" ]; then
-            echo "[token] source: ZED_TOKEN env (static, cannot auto-refresh)" >&2
-            printf '%s' "$tok"; return 0
+            if is_expired "$tok"; then
+                echo "[token] WARNING: ZED_TOKEN env is EXPIRED; ignoring it and trying the next source." >&2
+            else
+                echo "[token] source: ZED_TOKEN env (static, cannot auto-refresh)" >&2
+                printf '%s' "$tok"; return 0
+            fi
         fi
     fi
     if read_keyring; then
         if tok=$(exchange_for_jwt "$USER_ID" "$SECRET_JSON"); then
             echo "[token] source: keyring (auto-refresh OK)" >&2
+            note_expiry "$tok"
             printf '%s' "$tok"; return 0
         fi
         echo "[token] WARN: keyring credentials found but token exchange failed" >&2
@@ -252,6 +285,7 @@ resolve_raw() {
     if read_access_token_file; then
         if tok=$(exchange_for_jwt "$USER_ID" "$SECRET_JSON"); then
             echo "[token] source: $ACCESS_TOKEN_FILE (auto-refresh OK)" >&2
+            note_expiry "$tok"
             printf '%s' "$tok"; return 0
         fi
         echo "[token] WARN: access-token file exchange failed" >&2
@@ -259,7 +293,8 @@ resolve_raw() {
     if [ -f "$JWT_FILE" ]; then
         tok=$(grep -v '^[[:space:]]*$' "$JWT_FILE" | head -1 | sed -e 's/^Bearer[[:space:]]*//I' -e 's/[[:space:]]//g')
         if [ -n "$tok" ]; then
-            echo "[token] source: $JWT_FILE (static — expires in ~1h; run scripts/zed-refresh-daemon.sh for auto-renewal)" >&2
+            echo "[token] source: $JWT_FILE (static, expires in ~1h; run scripts/zed-refresh-daemon.sh for auto-renewal)" >&2
+            note_expiry "$tok"
             printf '%s' "$tok"; return 0
         fi
     fi
