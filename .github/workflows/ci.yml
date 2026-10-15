@@ -1,0 +1,49 @@
+# Runs the same gates as the publish workflow on every push and pull request,
+# so a drift in the model catalog or a syntax slip is caught before you tag.
+# This is a companion to publish.yml and can be removed without affecting
+# releases.
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 18
+          - 20
+          - 22
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Syntax, scripts, and model catalog
+        run: npm run prepublishOnly
+
+      - name: CLI smoke test
+        run: |
+          node cli.mjs version
+          node cli.mjs doctor
+
+      - name: Validate the example OpenCode config
+        run: node -e "JSON.parse(require('node:fs').readFileSync('config/opencode.json.example', 'utf8'))"
+
+      - name: Preview the package contents
+        if: matrix.node == 22
+        run: npm pack --dry-run

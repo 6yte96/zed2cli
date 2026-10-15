@@ -53,6 +53,7 @@
     "darwin"
   ],
   "scripts": {
-    "prepublishOnly": "node --check cli.mjs && node --check src/index.mjs && node --check src/index.v1.mjs && node --check src/models.mjs && node --check src/proxy.mjs && node --check src/pi/zed-ai.mjs && bash -n scripts/*.sh"
+    "check-models": "node scripts/check-models.mjs",
+    "prepublishOnly": "node --check cli.mjs && node --check src/index.mjs && node --check src/index.v1.mjs && node --check src/models.mjs && node --check src/proxy.mjs && node --check src/pi/zed-ai.mjs && node scripts/check-models.mjs && bash -n scripts/*.sh"
   }
 }

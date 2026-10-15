@@ -304,7 +304,7 @@ shells out to the resolver, so a stale exported token cannot win. It prefers a
 
 Fetch the current catalog, then update `src/models.mjs`. If you change any
 model, update the inline list in `src/pi/zed-ai.mjs` to match. The two lists
-must stay identical.
+must stay identical, and `npm run check-models` fails the build when they drift.
 
 ```bash
 curl -s https://cloud.zed.dev/models -H "authorization: Bearer $ZED_TOKEN" | jq '.models'
@@ -315,9 +315,27 @@ curl -s https://cloud.zed.dev/models -H "authorization: Bearer $ZED_TOKEN" | jq 
 The package ships `cli.mjs`, the files under `src` (including both
 `index.mjs` and `index.v1.mjs`), the scripts, and the config samples. It has no
 runtime dependencies and requires Node 18 or newer. The `prepublishOnly` script
-runs `node --check` over every source file and `bash -n scripts/*.sh`. The
-GitHub workflow at `.github/workflows/publish.yml` publishes to npm when a `v`
-prefixed tag is pushed.
+runs `node --check` over every source file, runs `npm run check-models` to
+confirm the pi catalog matches `src/models.mjs`, and runs `bash -n
+scripts/*.sh`. `npm publish` calls it again, so none of these can be skipped.
+
+To ship a release:
+
+1. Bump the version and tag it: `npm version patch` (or `minor`, or `major`).
+2. Push the commit and the tag: `git push origin main --follow-tags`.
+3. The Publish workflow verifies the tag against `package.json`, checks that
+   the version is not already on npm, publishes with `--provenance`, and
+   creates a GitHub release from the tag.
+
+Before the first release, add an npm automation token as the repository secret
+`NPM_TOKEN`. The publish job also requests a GitHub environment named `npm`. To
+require a manual approval before publishing, add reviewers to that environment;
+otherwise delete the `environment: npm` line from the workflow.
+
+You can also run the Publish workflow by hand from the Actions tab. Tick
+`dry_run` to run every check and skip the npm publish. The companion workflow
+`.github/workflows/ci.yml` runs the same gates on every push to `main` and
+every pull request, across Node 18, 20, and 22.
 
 ### Known limitations
 
@@ -365,7 +383,9 @@ scripts/zed-proxy.sh           bridge launcher with token auto refresh
 scripts/geo-check.sh           geo blocking diagnosis
 scripts/install-opencode.sh    one command OpenCode plugin installer
 scripts/install-pi.sh          one command pi extension installer
-.github/workflows/publish.yml  publish to npm on version tags
+scripts/check-models.mjs       fail the build when the pi catalog drifts
+.github/workflows/ci.yml       run the checks on every push and pull request
+.github/workflows/publish.yml  publish to npm and release on version tags
 ```
 
 ## License
