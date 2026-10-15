@@ -9,6 +9,7 @@
   "files": [
     "cli.mjs",
     "src/index.mjs",
+    "src/index.v1.mjs",
     "src/models.mjs",
     "src/proxy.mjs",
     "src/package.json",
@@ -52,6 +53,6 @@
     "darwin"
   ],
   "scripts": {
-    "prepublishOnly": "node --check cli.mjs && bash -n scripts/*.sh"
+    "prepublishOnly": "node --check cli.mjs && node --check src/index.mjs && node --check src/index.v1.mjs && node --check src/models.mjs && node --check src/proxy.mjs && node --check src/pi/zed-ai.mjs && bash -n scripts/*.sh"
   }
 }

@@ -1,14 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "$comment": "zed-open example. Copy the plugin dir to ~/.config/opencode/node_modules/opencode-zed-ai/ and adjust the plugin path below (see README).",
+  "$comment": "zed2cli OpenCode example. Run scripts/install-opencode.sh to copy the plugin and write this for you. OpenCode 2 uses \"plugins\" and points at the plugin directory. OpenCode 1 uses \"plugin\" and points at index.mjs inside it.",
 
-  "plugin": [
-    "/home/YOUR_USER/.config/opencode/node_modules/opencode-zed-ai/index.mjs"
+  "plugins": [
+    "/home/YOUR_USER/.config/opencode/node_modules/opencode-zed-ai"
   ],
 
   "provider": {
     "zed-ai-proxy": {
-      "$comment": "Optional fallback: use the bridge proxy instead of the plugin (requires ./scripts/zed-proxy.sh running).",
+      "$comment": "Optional fallback: use the bridge proxy instead of the plugin (requires scripts/zed-proxy.sh running).",
       "npm": "@ai-sdk/openai-compatible",
       "name": "Zed AI (proxy)",
       "options": {

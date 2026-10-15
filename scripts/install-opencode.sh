@@ -1,9 +1,11 @@
 #!/bin/bash
 #############################################
-# Install the zed-open OpenCode plugin for the current user.
+# Install the zed2cli OpenCode plugin for the current user.
 #
-# - copies the plugin files into the OpenCode plugin directory
-# - adds the plugin to opencode.json (with a timestamped backup)
+# Detects the OpenCode major version and installs the matching plugin:
+#   - OpenCode v2: a directory plugin under node_modules/opencode-zed-ai,
+#     referenced from the "plugins" array in opencode.json.
+#   - OpenCode v1: a single file plugin, referenced from the "plugin" array.
 #
 # Usage:
 #   ./scripts/install-opencode.sh
@@ -50,13 +52,35 @@ if ! command -v opencode >/dev/null 2>&1; then
     exit 1
 fi
 
+OPENCODE_VERSION="$(opencode --version 2>/dev/null | head -1)"
+OPENCODE_MAJOR="$(printf '%s' "$OPENCODE_VERSION" | sed -E 's/^[^0-9]*([0-9]+).*/\1/')"
+[ -z "$OPENCODE_MAJOR" ] && OPENCODE_MAJOR=1
+if [ "$OPENCODE_MAJOR" -ge 2 ]; then API="v2"; else API="v1"; fi
+echo "[install] detected $OPENCODE_VERSION (plugin API $API)"
+
 echo "[install] copying plugin to: $PLUGIN_DIR"
 mkdir -p "$PLUGIN_DIR"
-cp "$REPO_ROOT/src/index.mjs" "$REPO_ROOT/src/models.mjs" "$REPO_ROOT/src/package.json" "$PLUGIN_DIR/"
+if [ "$API" = "v2" ]; then
+    cp "$REPO_ROOT/src/index.mjs" "$PLUGIN_DIR/index.mjs"
+else
+    cp "$REPO_ROOT/src/index.v1.mjs" "$PLUGIN_DIR/index.mjs"
+fi
+cp "$REPO_ROOT/src/models.mjs" "$PLUGIN_DIR/models.mjs"
+cp "$REPO_ROOT/src/package.json" "$PLUGIN_DIR/package.json"
+[ -f "$REPO_ROOT/scripts/zed-token.sh" ] && cp "$REPO_ROOT/scripts/zed-token.sh" "$PLUGIN_DIR/zed-token.sh"
+
+# What gets registered in opencode.json. V2 wants a plugin directory, V1 a file.
+if [ "$API" = "v2" ]; then
+    KEY="plugins"
+    ENTRY="$PLUGIN_DIR"
+else
+    KEY="plugin"
+    ENTRY="$PLUGIN_DIR/index.mjs"
+fi
 
 if [ "$SKIP_CONFIG" = "1" ]; then
     echo "[install] done (config skipped). Add this to your opencode.json manually:"
-    echo "  \"plugin\": [\"$PLUGIN_DIR/index.mjs\"]"
+    echo "  \"$KEY\": [\"$ENTRY\"]"
     exit 0
 fi
 
@@ -66,34 +90,48 @@ if [ ! -f "$CONFIG_FILE" ]; then
     cat > "$CONFIG_FILE" <<EOF
 {
   "\$schema": "https://opencode.ai/config.json",
-  "plugin": ["$PLUGIN_DIR/index.mjs"]
+  "$KEY": ["$ENTRY"]
 }
 EOF
     echo "[install] created $CONFIG_FILE"
-else
-    BACKUP="$CONFIG_FILE.backup-zed-open.$(date +%s).$$"
+elif command -v jq >/dev/null 2>&1; then
+    BACKUP="$CONFIG_FILE.backup-zed-ai.$(date +%s).$$"
     cp "$CONFIG_FILE" "$BACKUP"
     echo "[install] backup saved: $BACKUP"
-    if command -v jq >/dev/null 2>&1; then
-        TMP_FILE="$(mktemp)"
-        trap 'rm -f "$TMP_FILE"' EXIT
-        jq --arg p "$PLUGIN_DIR/index.mjs" '
-            if (((.plugin // []) | type) == "array" and (.plugin | index($p))) then .
-            else .plugin = ((.plugin // []) + [$p])
-            end
+    TMP_FILE="$(mktemp)"
+    trap 'rm -f "$TMP_FILE"' EXIT
+    if [ "$API" = "v2" ]; then
+        # Add the directory to "plugins" and remove any stale V1 file entry.
+        jq --arg entry "$ENTRY" '
+            .plugins = (((.plugins // []) + [$entry]) | unique)
+            | if .plugin then
+                .plugin = [ .plugin[] | select((tostring | contains("opencode-zed-ai")) | not) ]
+              else . end
+            | if (.plugin? == []) then del(.plugin) else . end
         ' "$CONFIG_FILE" > "$TMP_FILE"
-        mv "$TMP_FILE" "$CONFIG_FILE"
-        trap - EXIT
-        echo "[install] updated $CONFIG_FILE"
     else
-        echo "[install] jq not found — add this to $CONFIG_FILE manually:"
-        echo "  \"plugin\": [\"$PLUGIN_DIR/index.mjs\"]"
+        jq --arg entry "$ENTRY" '
+            .plugin = (((.plugin // []) + [$entry]) | unique)
+        ' "$CONFIG_FILE" > "$TMP_FILE"
     fi
+    mv "$TMP_FILE" "$CONFIG_FILE"
+    trap - EXIT
+    echo "[install] updated $CONFIG_FILE"
+else
+    echo "[install] jq not found, add this to $CONFIG_FILE manually:"
+    echo "  \"$KEY\": [\"$ENTRY\"]"
 fi
 
 echo ""
 echo "[install] done. Next steps:"
-echo "  1. opencode providers login --provider zed-ai --method \"Login with Zed Session Token\""
-echo "     (or just: export ZED_TOKEN=eyJ...)"
-echo "  2. opencode models zed-ai"
-echo "  3. opencode run -m zed-ai/claude-sonnet-4-6 \"hello\""
+if [ "$API" = "v2" ]; then
+    echo "  1. Make sure a Zed token is available: run 'zed2cli token' (uses the Zed keyring)"
+    echo "     or export ZED_TOKEN=eyJ...   (the plugin also reads ~/.zed_jwt_token)"
+    echo "  2. opencode models  (look for zed-ai/... lines)"
+    echo "  3. opencode run -m zed-ai/claude-sonnet-4-6 \"hello\""
+else
+    echo "  1. opencode providers login --provider zed-ai --method \"Login with Zed Session Token\""
+    echo "     (or just: export ZED_TOKEN=eyJ...)"
+    echo "  2. opencode models zed-ai"
+    echo "  3. opencode run -m zed-ai/claude-sonnet-4-6 \"hello\""
+fi

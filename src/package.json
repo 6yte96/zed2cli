@@ -4,6 +4,7 @@
   "main": "./index.mjs",
   "type": "module",
   "devDependencies": {
-    "@opencode-ai/plugin": "^1.2.25"
+    "@opencode-ai/plugin": "^1.2.25",
+    "@opencode/plugin": "*"
   }
 }
