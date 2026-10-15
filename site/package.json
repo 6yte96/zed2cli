@@ -5,7 +5,7 @@
   "description": "zed2cli landing page, a Paper and Ink broadsheet for the zed2cli bridge",
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "next build && node scripts/finalize-og.mjs",
     "start": "next start",
     "type-check": "tsc --noEmit"
   },

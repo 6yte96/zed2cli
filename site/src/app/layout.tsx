@@ -20,9 +20,10 @@ const rubik = Rubik({
 });
 
 const { meta, brand, links, publish } = PROJECT_CONFIG;
+const siteOrigin = new URL(meta.url).origin;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(meta.url),
+  metadataBase: new URL(siteOrigin),
   title: {
     default: meta.title,
     template: `%s | ${brand.name}`,
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
   applicationName: brand.name,
   category: "developer tools",
   alternates: {
-    canonical: "/",
+    canonical: meta.url,
   },
   robots: {
     index: true,
