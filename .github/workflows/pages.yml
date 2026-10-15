@@ -1,0 +1,73 @@
+# Build the landing page in site/ and publish it to GitHub Pages.
+#
+# The site is a Next.js static export (see site/next.config.ts). It has its
+# own package.json and is not part of the npm package, because site/ is not
+# listed in the files field of the root package.json.
+#
+# Pages must be set to the GitHub Actions source. The first run does that
+# automatically through actions/configure-pages with enablement: true.
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build static site
+        env:
+          NEXT_PUBLIC_BASE_PATH: /zed2cli
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site/out
+
+  deploy:
+    name: Deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

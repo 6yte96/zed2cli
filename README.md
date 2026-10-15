@@ -7,6 +7,9 @@ through your existing Zed subscription and without running the Zed editor.
 This is an unofficial bridge. It is not affiliated with Zed, Anthropic,
 OpenAI, Google, xAI, or OpenCode.
 
+There is a visual overview of the project at
+https://6yte96.github.io/zed2cli/.
+
 ## For users
 
 ### What this does for you

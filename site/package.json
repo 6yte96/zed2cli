@@ -1,0 +1,25 @@
+{
+  "name": "zed2cli-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "zed2cli landing page, a Paper and Ink broadsheet for the zed2cli bridge",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "15.4.8",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "cssnano": "^9.0.2",
+    "postcss": "^8.5.28",
+    "typescript": "^5"
+  }
+}
