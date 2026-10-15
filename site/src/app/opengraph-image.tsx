@@ -55,13 +55,16 @@ export default function OpengraphImage() {
             </div>
             {brand.name}
           </div>
-          <div style={{ fontSize: 30 }}>v{publish.version}</div>
+          <div style={{ display: "flex", fontSize: 30 }}>{`v${publish.version}`}</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ fontSize: 42, letterSpacing: -1 }}>{hero.titleLines.before}</div>
+          <div style={{ display: "flex", fontSize: 42, letterSpacing: -1 }}>
+            {hero.titleLines.before}
+          </div>
           <div
             style={{
+              display: "flex",
               fontSize: 84,
               fontWeight: 700,
               letterSpacing: -2,
@@ -70,7 +73,9 @@ export default function OpengraphImage() {
           >
             {hero.titleLines.highlight}
           </div>
-          <div style={{ fontSize: 42, letterSpacing: -1 }}>{hero.titleLines.after}</div>
+          <div style={{ display: "flex", fontSize: 42, letterSpacing: -1 }}>
+            {hero.titleLines.after}
+          </div>
         </div>
 
         <div
