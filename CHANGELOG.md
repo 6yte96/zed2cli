@@ -30,9 +30,9 @@ installer drops an earlier entry whose file no longer exists, which `pi remove`
 cannot match.
 
 **Publish pipeline.** A push to main publishes to npm automatically when the
-version in `package.json` is new, with provenance, then creates a matching git
-tag and GitHub release. A catalog drift check keeps the pi model list in step
-with `src/models.mjs`.
+version in `package.json` is new, authenticating with npm trusted publishing
+and attaching provenance, then creates a matching git tag and GitHub release. A
+catalog drift check keeps the pi model list in step with `src/models.mjs`.
 
 **Documentation.** `README.md` was rewritten with the user content first.
 `INSTALL.md` covers install, and `RELEASING.md` covers publishing.

@@ -326,16 +326,16 @@ To ship a release, bump the version and push to main:
 2. Push it: `git push origin main`.
 
 That is the whole flow. The Publish workflow runs on every push to main,
-verifies, then publishes that version with `--provenance` if it is not already
-on npm, and creates the `vX.Y.Z` git tag and a GitHub release with generated
-notes. Push without changing the version and it runs the checks, sees that the
-version is already published, and skips. There are no approvals and no manual
-trigger.
+verifies, then publishes that version if it is not already on npm, and creates
+the `vX.Y.Z` git tag and a GitHub release with generated notes. Push without
+changing the version and it runs the checks, sees that the version is already
+published, and skips. There are no approvals and no manual trigger.
 
-The one time setup, which is bringing an npm token and storing it as the
-repository secret `NPM_TOKEN`, is written out step by step in
+Publishing authenticates with npm trusted publishing through GitHub OIDC, so
+no npm token is stored anywhere. The one time setup, which is connecting this
+repository to the `zed2cli` package on npm, is written out step by step in
 [`RELEASING.md`](RELEASING.md). That page also covers the versioning rules,
-where the version lives, and how to retry a failed release. Changes are
+where the version lives, and what to do when a publish fails. Changes are
 recorded in [`CHANGELOG.md`](CHANGELOG.md).
 
 The companion workflow `.github/workflows/ci.yml` runs the same gates on pull
@@ -376,7 +376,7 @@ valid, because `/models` still returns 200.
 ```text
 cli.mjs                        CLI dispatcher, the zed2cli binary
 CHANGELOG.md                   notable changes per release
-RELEASING.md                   npm token setup and the release flow
+RELEASING.md                   trusted publishing setup and the release flow
 src/models.mjs                 verified model catalog and helpers, shared
 src/index.mjs                  OpenCode 2 plugin for the zed-ai provider
 src/index.v1.mjs               OpenCode 1 plugin, kept for older installs

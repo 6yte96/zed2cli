@@ -1,55 +1,64 @@
 # Releasing zed2cli
 
-There are two parts. A one time setup, where you bring an npm token and store
-it as a GitHub secret, and the release itself, which after setup is a single
-push to `main`.
+There are two parts. A one time setup, where you connect npm to this GitHub
+repository using trusted publishing, and the release itself, which after setup
+is a single push to `main`.
 
-## One time setup
+## Why trusted publishing, not a token
 
-### 1. Have an npm account with publish rights
+npm revoked all classic tokens in December 2025, so automation tokens no longer
+exist and cannot be recreated. Tokens that bypass two factor authentication can
+still publish for now, but they lose direct publish access in January 2027.
+Trusted publishing replaces the token entirely: the workflow proves its
+identity to npm with a short lived OIDC credential, and npm attaches a
+provenance statement automatically. Nothing long lived is stored, so there is
+nothing to leak or rotate.
 
-If you do not have one, sign up at https://www.npmjs.com/signup and verify your
-email. You need publish rights to the `zed2cli` package, which means owning it
-or being listed as a maintainer. The first publish creates the package if it
-does not exist yet.
+## What you need
 
-### 2. Bring (create) an npm token
+**The package must already exist on npm.** Trusted publishers are configured in
+the settings of an existing package. `zed2cli` already exists (1.0.0 was
+published), so you can configure it right away. If you ever start a brand new
+package, publish it once by hand or with a short lived token, then configure
+trusted publishing.
 
-1. Sign in at https://www.npmjs.com.
-2. Open Access Tokens: click your avatar, then Access Tokens, or go straight to
-   https://www.npmjs.com/settings/YOUR_USERNAME/tokens (replace
-   `YOUR_USERNAME`).
-3. Click Generate New Token, then choose Automation.
-4. Copy the token now. npm shows it once. It looks like
-   `npm_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`.
+**npm CLI 11.5.1 or newer and Node 22.14 or newer.** The workflow uses Node 24,
+which bundles npm 11.19, so you do not need to install anything locally.
 
-Why Automation: automation tokens are made for continuous integration. They
-bypass the two factor prompt, which a non-interactive workflow needs, and they
-are scoped to publishing. A Granular Access Token also works if you scope it to
-the `zed2cli` package with Read and write. Automation is the simplest choice.
+**GitHub hosted runners.** Self hosted runners are not supported. The workflow
+uses `ubuntu-latest`, which is fine.
 
-Keep the token private. Anyone with it can publish to every package your
-account can publish to.
+## One time setup: add the trusted publisher
 
-### 3. Store the token as the repository secret
+1. Open the package on npm: https://www.npmjs.com/package/zed2cli
+2. Click the Settings tab on that page, then find the Trusted Publisher
+   section.
+3. Under "Select your publisher", click GitHub Actions.
+4. Fill in the fields exactly:
+   1. **Organization or user**: `6yte96`
+   2. **Repository**: `zed2cli`
+   3. **Workflow filename**: `publish.yml`, only the filename, not the path, and
+      it must include the `.yml` extension
+   4. **Environment name**: leave this empty, because the workflow uses no
+      GitHub environment
+   5. **Allowed actions**: turn on **Allow npm publish**. Configurations created
+      after September 2026 allow staged publishing only by default, and direct
+      `npm publish` will be refused until you enable this.
+5. Save the configuration.
 
-1. Open the repository: https://github.com/6yte96/zed2cli.
-2. Go to Settings, then Secrets and variables, then Actions.
-3. Under the Secrets tab, click New repository secret.
-4. Name it exactly `NPM_TOKEN`.
-5. Paste the token as the value, then click Add secret.
+Everything is case sensitive. npm does not validate the details when you save
+them, so mistakes only show up at publish time.
 
-That is the whole setup. The publish workflow reads it as
-`${{ secrets.NPM_TOKEN }}`.
+### Two things that invalidate a new configuration
 
-### 4. Optional, trusted publishing instead of a token
+**The two day window.** A new configuration must complete its first successful
+publish within 2 days, which also binds it to the repository. If it expires,
+delete it and create a new one, then publish within 2 days again.
 
-npm supports trusted publishing through GitHub OIDC, which removes the stored
-token entirely. On npmjs.com, open the package settings, then Publishing
-access, and add a trusted publisher for the GitHub repository `6yte96/zed2cli`
-and the workflow file `publish.yml`. Then edit `.github/workflows/publish.yml`
-and delete the `NODE_AUTH_TOKEN` line from the publish step, keeping
-`id-token: write`. Releases then authenticate with no secret at all.
+**The repository field.** `package.json` has
+`"repository": "git+https://github.com/6yte96/zed2cli.git"`, which matches this
+GitHub repository. If that field pointed at a fork or a different repo, the
+publish would be refused.
 
 ## Releasing
 
@@ -76,11 +85,20 @@ After the push, the Publish workflow:
 
 1. runs every check,
 2. reads the version from `package.json`,
-3. publishes to npm with provenance if that version is not already there,
+3. publishes to npm if that version is not already there, authenticating with
+   trusted publishing and generating provenance automatically,
 4. creates the git tag `vX.Y.Z` if it is missing, and a GitHub release with
    generated notes,
 5. does nothing if the version was already published, so a push with no version
    change is always safe.
+
+## After the first successful publish: lock it down
+
+Trusted publishers keep working even when tokens are disabled. Open the package
+settings, go to Publishing access, select **Require two-factor authentication
+and disallow tokens**, and click Update Package Settings. This blocks any
+traditional token from publishing to `zed2cli`, while the workflow continues to
+work through OIDC.
 
 ## Versioning rules
 
@@ -106,20 +124,37 @@ the main one.
 
 **Git tags** are `v` plus the version, for example `v2.0.0`.
 
-## Retrying a failed release
+## If trusted publishing fails
 
-If the workflow fails before it publishes, fix the cause and push again, or
-open the Actions tab and re-run the job.
+**`EENEEDAUTH` or "Unable to authenticate".** The workflow filename does not
+match what you configured, the `id-token: write` permission is missing, the
+owner or repository name is wrong, or you are on a self hosted runner. All four
+fields must match exactly.
 
-If it published to npm and then failed at the tag or release step, push another
-commit, or run the two commands by hand:
+**A 404 during publish.** npm is older than 11.5.1 or Node is older than 22.14.
+The workflow pins Node 24, so this only happens if you publish from somewhere
+else.
 
-```bash
-git tag -a v2.0.0 -m "zed2cli 2.0.0" && git push origin v2.0.0
-gh release create v2.0.0 --title v2.0.0 --generate-notes
+**The configuration expired.** You did not complete a publish within 2 days.
+Delete the trusted publisher and add it again.
+
+**Repository mismatch.** `package.json` `repository.url` must match the GitHub
+repository exactly.
+
+### Temporary fallback with a token
+
+If you must publish without OIDC, create a Granular Access Token instead of an
+automation token, scoped to `zed2cli` with Read and write and a short expiry,
+store it as the repository secret `NPM_TOKEN`, and add this to the publish step
+in the workflow:
+
+```yaml
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 ```
 
-The version is already on npm, so the next workflow run skips publishing.
+This is a stopgap. Bypass two factor tokens lose direct publish access in
+January 2027, so trusted publishing is the durable path.
 
 ## Verifying a release
 
@@ -131,4 +166,6 @@ The version is already on npm, so the next workflow run skips publishing.
 and Releases pages on GitHub.
 
 **Provenance**: the npm package page shows a provenance badge that links the
-published tarball to this repository and the workflow run that built it.
+published tarball to this repository and the exact workflow run that built it.
+That badge only appears when publishing through trusted publishing from a
+public repository, which is exactly what this setup does.
