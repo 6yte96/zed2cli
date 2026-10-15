@@ -4,7 +4,7 @@
   "description": "Use Zed-hosted AI models from opencode, pi, hermes, or any OpenAI compatible CLI through your Zed subscription, without running Zed.",
   "type": "module",
   "bin": {
-    "zed2cli": "./cli.mjs"
+    "zed2cli": "cli.mjs"
   },
   "files": [
     "cli.mjs",
