@@ -140,9 +140,20 @@ export interface ProjectConfig {
     sponsorLabel: string;
     shareTitle: string;
   };
+  /** where the package is published and where this page lives */
+  publish: {
+    version: string;
+    npmUrl: string;
+    pagesUrl: string;
+    node: string;
+    license: string;
+    updated: string;
+    note: string;
+  };
   links: {
     github: string;
     docs: string;
+    pages?: string;
     discord?: string;
     twitter?: string;
     npm?: string;
@@ -482,9 +493,19 @@ Integration:
     sponsorLabel: "Sponsor",
     shareTitle: "zed2cli, use your Zed hosted models from any CLI agent",
   },
+  publish: {
+    version: "2.0.0",
+    npmUrl: "https://www.npmjs.com/package/zed2cli",
+    pagesUrl: "https://6yte96.github.io/zed2cli/",
+    node: "18 or newer",
+    license: "MIT",
+    updated: "2026-10",
+    note: "Published to npm on every push to main through GitHub OIDC trusted publishing, with provenance. No npm token is stored anywhere.",
+  },
   links: {
     github: GITHUB,
     docs: "https://github.com/6yte96/zed2cli#readme",
+    pages: "https://6yte96.github.io/zed2cli/",
     npm: "https://www.npmjs.com/package/zed2cli",
   },
 };

@@ -1,4 +1,5 @@
 import "./globals.css";
+import type { Metadata } from "next";
 import { Space_Mono, Rubik } from "next/font/google";
 import { PROJECT_CONFIG } from "@/config";
 import { Header } from "@/components/Header";
@@ -18,24 +19,68 @@ const rubik = Rubik({
   display: "swap",
 });
 
-export const metadata = {
-  title: PROJECT_CONFIG.meta.title,
-  description: PROJECT_CONFIG.meta.description,
-  keywords: PROJECT_CONFIG.meta.keywords,
-  authors: [{ name: PROJECT_CONFIG.meta.author }],
+const { meta, brand, links, publish } = PROJECT_CONFIG;
+
+export const metadata: Metadata = {
+  metadataBase: new URL(meta.url),
+  title: {
+    default: meta.title,
+    template: `%s | ${brand.name}`,
+  },
+  description: meta.description,
+  keywords: meta.keywords,
+  authors: [{ name: meta.author, url: links.github }],
+  creator: meta.author,
+  publisher: meta.author,
+  applicationName: brand.name,
+  category: "developer tools",
+  alternates: {
+    canonical: "/",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   openGraph: {
-    title: PROJECT_CONFIG.meta.title,
-    description: PROJECT_CONFIG.meta.description,
-    url: PROJECT_CONFIG.meta.url,
-    siteName: PROJECT_CONFIG.brand.name,
+    title: meta.title,
+    description: meta.description,
+    url: meta.url,
+    siteName: brand.name,
     type: "website",
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: PROJECT_CONFIG.meta.title,
-    description: PROJECT_CONFIG.meta.description,
-    creator: `@${PROJECT_CONFIG.brand.handle}`,
+    title: meta.title,
+    description: meta.description,
+    creator: `@${brand.handle}`,
   },
+};
+
+/**
+ * Structured data so search engines and package indexes read the same facts
+ * the page shows: the version, the license, where the code lives, and where
+ * the package is published.
+ */
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareSourceCode",
+  name: brand.name,
+  description: meta.description,
+  url: meta.url,
+  codeRepository: links.github,
+  programmingLanguage: "JavaScript",
+  runtimePlatform: "Node.js",
+  license: `https://opensource.org/licenses/${publish.license}`,
+  version: publish.version,
+  downloadUrl: publish.npmUrl,
+  installUrl: publish.npmUrl,
+  author: {
+    "@type": "Person",
+    name: brand.handle,
+    url: links.github,
+  },
+  sameAs: [links.github, publish.npmUrl].filter(Boolean),
 };
 
 export const viewport = {
@@ -72,6 +117,10 @@ export default function RootLayout({
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Font Awesome 6.5.1 Kit */}
         <link
           rel="stylesheet"

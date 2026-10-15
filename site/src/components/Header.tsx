@@ -154,6 +154,30 @@ export function Header() {
             <i className="fab fa-github"></i>
             <span>GitHub Repository</span>
           </a>
+          {links.npm && (
+            <a
+              href={links.npm}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="drawer-link"
+              onClick={closeDrawer}
+            >
+              <i className="fab fa-npm"></i>
+              <span>npm Package</span>
+            </a>
+          )}
+          {links.pages && (
+            <a
+              href={links.pages}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="drawer-link"
+              onClick={closeDrawer}
+            >
+              <i className="fas fa-globe"></i>
+              <span>Live Page</span>
+            </a>
+          )}
         </nav>
 
         <div className="drawer-footer">

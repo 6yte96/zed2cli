@@ -54,7 +54,7 @@
   "bugs": {
     "url": "https://github.com/6yte96/zed2cli/issues"
   },
-  "homepage": "https://github.com/6yte96/zed2cli#readme",
+  "homepage": "https://6yte96.github.io/zed2cli/",
   "os": [
     "linux",
     "darwin"

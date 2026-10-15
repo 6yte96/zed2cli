@@ -4,7 +4,7 @@ import { useState } from "react";
 import { PROJECT_CONFIG } from "@/config";
 
 export function Hero() {
-  const { hero, install, telemetry, links } = PROJECT_CONFIG;
+  const { hero, install, telemetry, links, publish } = PROJECT_CONFIG;
   const [selectedManager, setSelectedManager] = useState(
     install.defaultManager || "npm"
   );
@@ -102,6 +102,39 @@ export function Hero() {
               style={{ marginRight: "0.45rem", fontSize: "12px" }}
             ></i>
             <span>{hero.secondaryCta.text}</span>
+          </a>
+        </div>
+
+        {/* Published package and live page */}
+        <div
+          className="font-mono text-xs text-muted-foreground"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: "0.5rem 1rem",
+            marginTop: "1.5rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
+        >
+          <a
+            href={publish.npmUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "inherit", textDecoration: "underline" }}
+          >
+            npm: zed2cli@{publish.version}
+          </a>
+          <span>{publish.license}</span>
+          <span>node {publish.node}</span>
+          <a
+            href={publish.pagesUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "inherit", textDecoration: "underline" }}
+          >
+            live page
           </a>
         </div>
       </div>

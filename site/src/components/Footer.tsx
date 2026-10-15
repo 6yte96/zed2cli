@@ -1,7 +1,7 @@
 import { PROJECT_CONFIG } from "@/config";
 
 export function Footer() {
-  const { brand, links, meta, nav, support } = PROJECT_CONFIG;
+  const { brand, links, meta, nav, support, publish } = PROJECT_CONFIG;
   const currentYear = new Date().getFullYear();
 
   return (
@@ -49,6 +49,17 @@ export function Footer() {
                 <i className="fab fa-npm"></i>
               </a>
             )}
+            {links.pages && (
+              <a
+                href={links.pages}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-link"
+                title="Live Page"
+              >
+                <i className="fas fa-globe"></i>
+              </a>
+            )}
             {links.sponsor && (
               <a
                 href={links.sponsor}
@@ -76,6 +87,15 @@ export function Footer() {
             style={{ color: "inherit", textDecoration: "underline" }}
           >
             {support.license} License
+          </a>
+          {" // "}
+          <a
+            href={publish.npmUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "inherit", textDecoration: "underline" }}
+          >
+            npm zed2cli@{publish.version}
           </a>
           {" // "}
           {meta.version} // @{brand.handle}
