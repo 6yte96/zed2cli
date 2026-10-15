@@ -128,6 +128,7 @@ export function Hero() {
           </a>
           <span>{publish.license}</span>
           <span>node {publish.node}</span>
+          <span>updated {publish.updated}</span>
           <a
             href={publish.pagesUrl}
             target="_blank"

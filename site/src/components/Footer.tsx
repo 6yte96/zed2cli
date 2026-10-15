@@ -100,6 +100,12 @@ export function Footer() {
           {" // "}
           {meta.version} // @{brand.handle}
         </p>
+        <p
+          className="footer-version"
+          style={{ marginTop: "0.5rem", opacity: 0.75, textAlign: "left" }}
+        >
+          {publish.note}
+        </p>
       </div>
     </footer>
   );
