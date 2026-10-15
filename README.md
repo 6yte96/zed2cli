@@ -319,23 +319,25 @@ runs `node --check` over every source file, runs `npm run check-models` to
 confirm the pi catalog matches `src/models.mjs`, and runs `bash -n
 scripts/*.sh`. `npm publish` calls it again, so none of these can be skipped.
 
-To ship a release:
+To ship a release, bump the version and push to main:
 
-1. Bump the version and tag it: `npm version patch` (or `minor`, or `major`).
-2. Push the commit and the tag: `git push origin main --follow-tags`.
-3. The Publish workflow verifies the tag against `package.json`, checks that
-   the version is not already on npm, publishes with `--provenance`, and
-   creates a GitHub release from the tag.
+1. Bump the version in `package.json`: `npm version patch` (or `minor`, or
+   `major`).
+2. Push it: `git push origin main`.
 
-Before the first release, add an npm automation token as the repository secret
-`NPM_TOKEN`. The publish job also requests a GitHub environment named `npm`. To
-require a manual approval before publishing, add reviewers to that environment;
-otherwise delete the `environment: npm` line from the workflow.
+That is the whole flow. The Publish workflow runs on every push to main,
+verifies, then publishes that version with `--provenance` if it is not already
+on npm. Push without changing the version and it runs the checks, sees that the
+version is already published, and skips. There are no tags, no approvals, and
+no manual trigger.
 
-You can also run the Publish workflow by hand from the Actions tab. Tick
-`dry_run` to run every check and skip the npm publish. The companion workflow
-`.github/workflows/ci.yml` runs the same gates on every push to `main` and
-every pull request, across Node 18, 20, and 22.
+The only one time setup is an npm automation token with publish rights for the
+package, stored as the repository secret `NPM_TOKEN` (Settings, then Secrets
+and variables, then Actions). Nothing else is required.
+
+The companion workflow `.github/workflows/ci.yml` runs the same gates on pull
+requests, across Node 18, 20, and 22, so problems are caught before they reach
+main.
 
 ### Known limitations
 
@@ -384,8 +386,8 @@ scripts/geo-check.sh           geo blocking diagnosis
 scripts/install-opencode.sh    one command OpenCode plugin installer
 scripts/install-pi.sh          one command pi extension installer
 scripts/check-models.mjs       fail the build when the pi catalog drifts
-.github/workflows/ci.yml       run the checks on every push and pull request
-.github/workflows/publish.yml  publish to npm and release on version tags
+.github/workflows/ci.yml       run the checks on pull requests
+.github/workflows/publish.yml  publish to npm on every push to main
 ```
 
 ## License

@@ -1,90 +1,40 @@
-# Publishes zed2cli to npm and cuts a matching GitHub release.
+# Publishing is just a push to main.
 #
-# Release flow:
-#   1. Bump the version in package.json (npm version patch|minor|major).
-#   2. Push the commit and its tag:  git push origin main --follow-tags
-#   3. This workflow verifies, publishes to npm, then creates the GitHub
-#      release for the tag.
+#   git push origin main
 #
-# One time setup, both under the repository "Settings":
-#   Secrets and variables, Actions: add NPM_TOKEN, an npm automation token
-#   with publish rights to the zed2cli package.
-#   Optionally add an "npm" environment with required reviewers to gate the
-#   publish job; this workflow already requests it via `environment: npm`
-#   (remove that line if you do not want a manual approval step).
+# This workflow:
+#   1. runs every check (npm run prepublishOnly),
+#   2. reads the version from package.json,
+#   3. publishes it to npm with provenance if that exact version is not
+#      already on npm,
+#   4. does nothing if the version is unchanged, so ordinary pushes are safe.
 #
-# You can also run it by hand from the Actions tab with workflow_dispatch.
-# Tick "dry_run" to run every check but skip the npm publish.
+# So to ship a release: bump the version in package.json, commit, and push to
+# main. Push without a version bump and the run simply skips publishing.
+#
+# No tags, no approvals, no GitHub environment, no manual trigger.
+#
+# One time setup: add an npm automation token with publish rights to the
+# package as the repository secret NPM_TOKEN (Settings, Secrets and
+# variables, Actions). Nothing else is required.
 name: Publish
 
 on:
   push:
-    tags:
-      - "v*"
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: Run every check but skip the npm publish
-        type: boolean
-        default: false
+    branches:
+      - main
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-main
   cancel-in-progress: false
 
 jobs:
-  verify:
-    name: Verify
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-
-      - name: Syntax, scripts, and model catalog
-        run: npm run prepublishOnly
-
-      - name: Check the tag matches package.json
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          set -euo pipefail
-          tag="${GITHUB_REF_NAME#v}"
-          pkg="$(node -p "require('./package.json').version")"
-          echo "tag v$tag, package.json $pkg"
-          if [ "$tag" != "$pkg" ]; then
-            echo "::error::tag v$tag does not match package.json version $pkg"
-            exit 1
-          fi
-
-      - name: Check npm does not already have this version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          set -euo pipefail
-          pkg="$(node -p "require('./package.json').version")"
-          if npm view "zed2cli@$pkg" version >/dev/null 2>&1; then
-            echo "::error::zed2cli@$pkg is already published; bump the version"
-            exit 1
-          fi
-          echo "zed2cli@$pkg is not on npm yet"
-
-      - name: Preview the package contents
-        run: npm pack --dry-run
-
   publish:
     name: Publish to npm
-    needs: verify
-    # Always on a tag push, and on a manual run unless dry_run is ticked.
-    if: github.event_name == 'push' || inputs.dry_run == false
     runs-on: ubuntu-latest
-    environment: npm
     permissions:
       contents: read
       id-token: write # npm provenance
@@ -98,27 +48,31 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
 
-      - name: Publish with provenance
-        # `npm publish` runs prepublishOnly again, so the checks all hold.
+      - name: Verify
+        run: npm run prepublishOnly
+
+      - name: Check whether this version is already on npm
+        id: version
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if npm view "zed2cli@$version" version >/dev/null 2>&1; then
+            echo "zed2cli@$version is already on npm"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "zed2cli@$version is new"
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish to npm
+        if: steps.version.outputs.publish == 'true'
         run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  release:
-    name: Create GitHub release
-    needs: publish
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Create the release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Nothing to publish
+        if: steps.version.outputs.publish != 'true'
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            --title "$GITHUB_REF_NAME" \
-            --generate-notes
+          echo "zed2cli@${{ steps.version.outputs.version }} is already published."
+          echo "Bump the version in package.json and push to main to release."

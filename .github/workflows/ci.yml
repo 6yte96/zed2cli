@@ -1,13 +1,11 @@
-# Runs the same gates as the publish workflow on every push and pull request,
-# so a drift in the model catalog or a syntax slip is caught before you tag.
-# This is a companion to publish.yml and can be removed without affecting
-# releases.
+# Runs the same gates as the publish workflow on every pull request, so a
+# drift in the model catalog or a syntax slip is caught before it reaches main.
+# Pushes to main are already verified by publish.yml, so this only runs on
+# pull requests to avoid a duplicate run. This is a companion to publish.yml
+# and can be removed without affecting releases.
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
 
 permissions:
