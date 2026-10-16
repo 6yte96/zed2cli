@@ -138,6 +138,16 @@ export function Hero() {
           >
             live page
           </a>
+          {links.portfolio && (
+            <a
+              href={links.portfolio}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "inherit", textDecoration: "underline" }}
+            >
+              6yte96.me
+            </a>
+          )}
         </div>
       </div>
 

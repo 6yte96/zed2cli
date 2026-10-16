@@ -148,7 +148,7 @@ export interface ProjectConfig {
     node: string;
     license: string;
     updated: string;
-    note: string;
+    note?: string;
   };
   links: {
     github: string;
@@ -157,6 +157,7 @@ export interface ProjectConfig {
     discord?: string;
     twitter?: string;
     npm?: string;
+    portfolio?: string;
     /** when set, the Sponsor buttons render with this link */
     sponsor?: string;
   };
@@ -500,12 +501,12 @@ Integration:
     node: "18 or newer",
     license: "MIT",
     updated: "2026-10",
-    note: "Published to npm on every push to main through GitHub OIDC trusted publishing, with provenance. No npm token is stored anywhere.",
   },
   links: {
     github: GITHUB,
     docs: "https://github.com/6yte96/zed2cli#readme",
     pages: "https://6yte96.github.io/zed2cli/",
     npm: "https://www.npmjs.com/package/zed2cli",
+    portfolio: "https://6yte96.me",
   },
 };

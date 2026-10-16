@@ -60,6 +60,17 @@ export function Footer() {
                 <i className="fas fa-globe"></i>
               </a>
             )}
+            {links.portfolio && (
+              <a
+                href={links.portfolio}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="social-link"
+                title="6yte96.me Portfolio"
+              >
+                <i className="fas fa-laptop-code"></i>
+              </a>
+            )}
             {links.sponsor && (
               <a
                 href={links.sponsor}
@@ -98,13 +109,16 @@ export function Footer() {
             npm zed2cli@{publish.version}
           </a>
           {" // "}
-          {meta.version} // @{brand.handle}
-        </p>
-        <p
-          className="footer-version"
-          style={{ marginTop: "0.5rem", opacity: 0.75, textAlign: "left" }}
-        >
-          {publish.note}
+          {meta.version}
+          {" // "}
+          <a
+            href={links.portfolio || "https://6yte96.me"}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: "inherit", textDecoration: "underline" }}
+          >
+            6yte96.me
+          </a>
         </p>
       </div>
     </footer>
