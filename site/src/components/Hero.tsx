@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { PROJECT_CONFIG } from "@/config";
+import { HeroBridgeVisual } from "./HeroBridgeVisual";
 
 export function Hero() {
   const { hero, install, telemetry, links, publish } = PROJECT_CONFIG;
@@ -141,46 +142,7 @@ export function Hero() {
       </div>
 
       <div className="hero-visual">
-        <div className="press-run-card">
-          <div className="press-run-label">{telemetry.label}</div>
-          {telemetry.stats.map((stat, idx) => (
-            <div key={idx} className="press-stat">
-              <span className="press-stat-number">{stat.number}</span>
-              <span className="press-stat-label">{stat.label}</span>
-            </div>
-          ))}
-        </div>
-        <div className="press-run-update">{telemetry.updatedText}</div>
-
-        {/* Quiet support icons: borderless until hover, same muted
-            register as the telemetry text. The labeled support card
-            lives at the bottom of the page. */}
-        {links.github && (
-          <div className="hero-quiet-support" role="group" aria-label="Support this project">
-            <a
-              href={links.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hero-support-icon"
-              title="Star on GitHub"
-              aria-label="Star on GitHub"
-            >
-              <i className="far fa-star"></i>
-            </a>
-            {links.sponsor && (
-              <a
-                href={links.sponsor}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hero-support-icon"
-                title="Sponsor"
-                aria-label="Sponsor"
-              >
-                <i className="fas fa-heart"></i>
-              </a>
-            )}
-          </div>
-        )}
+        <HeroBridgeVisual />
       </div>
     </section>
   );
